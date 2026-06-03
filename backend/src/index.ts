@@ -12,6 +12,43 @@ const PORT = process.env.PORT || 8083;
 export let model: tf.LayersModel | null = null;
 const currenDir = import.meta.dirname;
 
+export let labels: Record<string, string> = {
+  "0": "congratulations",
+  "1": "good morning",
+  "2": "happy birthday",
+  "3": "how are you",
+  "4": "i need help"
+};
+export let scaler: { mean: number[]; scale: number[] } | null = null;
+
+async function loadModelMeta() {
+  const modelDir = path.join(currenDir, '..', 'model');
+  const labelsPath = path.join(modelDir, 'labels.json');
+  const scalerPath = path.join(modelDir, 'scaler.json');
+  
+  if (fs.existsSync(labelsPath)) {
+    try {
+      labels = JSON.parse(fs.readFileSync(labelsPath, 'utf8'));
+      console.log(`[MODEL META] Loaded ${Object.keys(labels).length} labels dynamically.`);
+    } catch (e: any) {
+      console.error('[MODEL META ERROR] Failed to load labels.json:', e.message);
+    }
+  } else {
+    console.log('[MODEL META] labels.json not found, using default 5 labels.');
+  }
+  
+  if (fs.existsSync(scalerPath)) {
+    try {
+      scaler = JSON.parse(fs.readFileSync(scalerPath, 'utf8'));
+      console.log('[MODEL META] Loaded scaler.json dynamically.');
+    } catch (e: any) {
+      console.error('[MODEL META ERROR] Failed to load scaler.json:', e.message);
+    }
+  } else {
+    console.log('[MODEL META] scaler.json not found, coordinate scaling disabled.');
+  }
+}
+
 // Custom IO Handler to read the model directly from local disk safely in Pure JS mode
 function localFileIO(jsonPath: string) {
     return {
@@ -71,6 +108,7 @@ function localFileIO(jsonPath: string) {
 
 async function startServer() {
     try {
+        await loadModelMeta();
         const modelPath = path.join(currenDir, '..', 'model', 'model.json');
         model = await tf.loadLayersModel(localFileIO(modelPath));
         console.log('Model loaded successfully')

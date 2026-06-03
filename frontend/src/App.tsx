@@ -287,11 +287,32 @@ export default function App() {
             if (now - lastSampleTimeRef.current >= 200) {
               lastSampleTimeRef.current = now;
               
-              // Extract coordinates of the dominant hand (21 landmarks * 3 [x,y,z] = 63 inputs)
-              const dominantHand = results.landmarks[0];
-              const coords = dominantHand.flatMap(lm => [lm.x, lm.y, lm.z]);
-              if (coords.length === 63) {
-                framesBufferRef.current.push(coords);
+              let leftHandCoords = new Array(63).fill(0);
+              let rightHandCoords = new Array(63).fill(0);
+              
+              results.landmarks.forEach((handLandmarks, idx) => {
+                const handednessList = results.handedness?.[idx];
+                const category = handednessList?.[0];
+                const label = category?.displayName || category?.categoryName;
+                
+                const coords = handLandmarks.flatMap(lm => [lm.x, lm.y, lm.z]);
+                
+                if (coords.length === 63) {
+                  if (label === 'Left') {
+                    leftHandCoords = coords;
+                  } else if (label === 'Right') {
+                    rightHandCoords = coords;
+                  } else {
+                    // Fallback order: first hand is left, second hand is right
+                    if (idx === 0) leftHandCoords = coords;
+                    else if (idx === 1) rightHandCoords = coords;
+                  }
+                }
+              });
+              
+              const coords126 = [...leftHandCoords, ...rightHandCoords];
+              if (coords126.length === 126) {
+                framesBufferRef.current.push(coords126);
               }
             }
           }
