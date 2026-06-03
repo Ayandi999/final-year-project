@@ -1,0 +1,576 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #F7F5F0;
+  --bg-panel: rgba(255, 255, 255, 0.6);
+  --bg-card: #FFFFFF;
+  --text-primary: #2C2C2A;
+  --text-secondary: #70706B;
+  --accent-primary: #607266;
+  --accent-secondary: #4D5C52;
+  --accent-soft: rgba(96, 114, 102, 0.08);
+  --border-color: rgba(220, 216, 206, 0.6);
+  --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0 15px 50px -5px rgba(96, 114, 102, 0.12);
+  --danger: #D48989;
+  --danger-soft: rgba(212, 137, 137, 0.1);
+  --success: #7EA68E;
+  
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121413;
+    --bg-panel: rgba(24, 27, 25, 0.6);
+    --bg-card: #1C1E1D;
+    --text-primary: #ECE9E6;
+    --text-secondary: #9B9E9B;
+    --accent-primary: #8FA396;
+    --accent-secondary: #A9BDB0;
+    --accent-soft: rgba(143, 163, 150, 0.12);
+    --border-color: rgba(45, 48, 46, 0.6);
+    --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 15px 50px -5px rgba(143, 163, 150, 0.18);
+    --danger: #E29C9C;
+    --danger-soft: rgba(226, 156, 156, 0.15);
+    --success: #A3C9B2;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Zen Layout Utilities */
+.zen-app {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Typography & Titles */
+.zen-title {
+  font-family: var(--font-serif);
+  font-size: 4.5rem;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.zen-subtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  font-weight: 300;
+  max-width: 500px;
+  margin: 0 auto 3rem auto;
+  letter-spacing: 0.01em;
+}
+
+/* Landing Cards and Options */
+.landing-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 70vh;
+}
+
+.options-container {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  max-width: 700px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Zen Card Container */
+.zen-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 300px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.zen-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--accent-primary);
+}
+
+.zen-card-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: var(--accent-soft);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  transition: all 0.5s ease;
+}
+
+.zen-card:hover .zen-card-icon {
+  background-color: var(--accent-primary);
+  color: var(--bg-card);
+  transform: scale(1.05);
+}
+
+.zen-card-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 400;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.zen-card-desc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+/* Zen Buttons */
+.zen-btn {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.85rem 2rem;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  background-color: transparent;
+}
+
+.zen-btn-primary {
+  background-color: var(--accent-primary);
+  color: var(--bg-card);
+}
+
+.zen-btn-primary:hover {
+  background-color: var(--accent-secondary);
+  transform: translateY(-2px);
+}
+
+.zen-btn-secondary {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.zen-btn-secondary:hover {
+  background-color: var(--accent-soft);
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.zen-btn-danger {
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger-soft);
+}
+
+.zen-btn-danger:hover {
+  background-color: var(--danger);
+  color: #FFFFFF;
+}
+
+/* Room UI Elements - Column Flex for Google Meet Subtitles Layout */
+.room-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.room-title-area {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-title {
+  font-family: var(--font-serif);
+  font-size: 2.25rem;
+  font-weight: 400;
+}
+
+.room-id-pill {
+  font-size: 0.8rem;
+  background-color: var(--accent-soft);
+  color: var(--accent-primary);
+  padding: 0.3rem 0.8rem;
+  border-radius: 99px;
+  font-family: monospace;
+  margin-top: 0.25rem;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.room-id-pill:hover {
+  opacity: 0.85;
+}
+
+/* Room Content - Subtitles on Bottom layout */
+.room-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  flex: 1;
+}
+
+/* Video Containers */
+.video-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.video-grid.two-feeds {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .video-grid.two-feeds {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.video-wrapper {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: #0F1110;
+  aspect-ratio: 16/9;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
+.video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-feed.mirrored {
+  transform: scaleX(-1);
+}
+
+.video-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transform: scaleX(-1); /* mirror landmarks too */
+}
+
+.video-label {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #FFFFFF;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 99px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.video-placeholder {
+  color: #9B9E9B;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 300;
+  font-size: 1rem;
+}
+
+.video-placeholder-icon {
+  animation: pulseSoft 2s infinite ease-in-out;
+  color: var(--accent-primary);
+}
+
+/* Wide Live Subtitle Panel at bottom */
+.translation-panel {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: var(--shadow);
+}
+
+.translation-panel.wide-layout {
+  width: 100% !important;
+  min-height: 150px;
+  padding: 1.5rem 2.5rem !important;
+}
+
+.translation-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.subtitles-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  min-height: 70px;
+  margin-top: 0.5rem;
+}
+
+.subtitles-text {
+  font-family: var(--font-serif);
+  font-size: 2.2rem;
+  line-height: 1.35;
+  color: var(--accent-primary);
+  font-weight: 400;
+  max-width: 950px;
+  word-break: break-word;
+}
+
+.subtitles-word {
+  display: inline-block;
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.subtitle-bullet {
+  color: var(--text-secondary);
+  margin: 0 0.8rem;
+  font-size: 1.4rem;
+  vertical-align: middle;
+  opacity: 0.6;
+}
+
+.subtitles-placeholder {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  font-weight: 300;
+  font-style: italic;
+}
+
+/* Modals & Overlays */
+.zen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(247, 245, 240, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .zen-overlay {
+    background-color: rgba(18, 20, 19, 0.85);
+  }
+}
+
+.modal-card {
+  max-width: 500px;
+  width: 100%;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 28px;
+  padding: 3rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.role-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.role-option-btn {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.role-option-btn:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+.role-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--accent-soft);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.role-option-btn:hover .role-icon {
+  background-color: var(--accent-primary);
+  color: var(--bg-card);
+}
+
+.role-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.role-name {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.role-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+  font-weight: 300;
+}
+
+/* Status Notifications */
+.status-toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: fadeIn 0.4s ease;
+  z-index: 1000;
+}

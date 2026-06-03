@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Valkey + WebRTC Socket Room Test</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #1e1e24;
+      color: #f3f3f5;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    .card {
+      background-color: #2a2b36;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      margin-bottom: 20px;
+    }
+    h1, h2 {
+      margin-top: 0;
+      color: #6366f1;
+    }
+    button {
+      background-color: #6366f1;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      margin-right: 10px;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #4f46e5;
+    }
+    input {
+      background-color: #1e1e24;
+      border: 1px solid #4b5563;
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      width: 280px;
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    .status-connected { background-color: #065f46; color: #34d399; }
+    .status-disconnected { background-color: #7f1d1d; color: #fca5a5; }
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+    video, canvas {
+      width: 100%;
+      height: 240px;
+      border-radius: 8px;
+      background-color: #111216;
+      border: 1px solid #374151;
+      object-fit: cover;
+    }
+    #local-video, #mediapipe-canvas {
+      transform: scaleX(-1); /* mirror local view */
+    }
+    .video-container {
+      position: relative;
+    }
+    .video-label {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .log-box {
+      background-color: #111216;
+      border-radius: 6px;
+      padding: 15px;
+      font-family: 'Courier New', Courier, monospace;
+      height: 180px;
+      overflow-y: auto;
+      font-size: 13px;
+      border: 1px solid #374151;
+    }
+    .log-entry {
+      margin-bottom: 6px;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 4px;
+    }
+    .log-time { color: #9ca3af; margin-right: 8px; }
+    .log-info { color: #38bdf8; }
+    .log-success { color: #4ade80; }
+    .log-error { color: #f87171; }
+    .share-link {
+      background-color: #374151;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .share-link a {
+      color: #60a5fa;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .share-link a:hover {
+      text-decoration: underline;
+    }
+    #role-badge {
+      background-color: #4f46e5;
+      color: white;
+    }
+    .mediapipe-badge {
+      background-color: #ec4899;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Valkey + WebRTC Room Test Console</h1>
+
+  <div class="card">
+    <div id="socket-status" class="status-badge status-disconnected">Disconnected</div>
+    
+    <div style="margin-bottom: 20px;">
+      <h2>1. Create a New Room</h2>
+      <button id="btn-create-room">Create Room & Get Link</button>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h2>2. Join Existing Room</h2>
+      <input type="text" id="input-room-id" placeholder="Enter Room ID to Join">
+      <button id="btn-join-room">Join Room</button>
+    </div>
+
+    <div id="share-section" style="display: none;">
+      <h3>Share Room Link:</h3>
+      <div class="share-link">
+        <a id="room-link" href="#" target="_blank"></a>
+        <button id="btn-copy-link" style="padding: 6px 12px; margin-right: 0;">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role and translation card -->
+  <div class="card" id="translation-card" style="display: none;">
+    <h2>Sign Language Translation Stream</h2>
+    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+      <strong>Your Assigned Role: </strong>&nbsp;
+      <span id="role-badge" class="status-badge" style="margin-bottom: 0;">Determining...</span>
+      <span id="mediapipe-status" class="mediapipe-badge">MediaPipe Loading...</span>
+    </div>
+    
+    <!-- Signer UI (MediaPipe Live Pipeline) -->
+    <div id="signer-view" style="display: none;">
+      <p>Local sign language model translation (Extracting 63 landmarks at 5Hz via MediaPipe):</p>
+      
+      <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
+        <button id="btn-toggle-processing" style="background-color: #ef4444;">Stop MediaPipe Tracking</button>
+        <div id="signer-local-detection" style="font-weight: bold; color: #f59e0b;">Initializing capture...</div>
+      </div>
+      
+      <div style="margin-top: 10px;">
+        <label>Manual Override:</label>
+        <input type="text" id="signer-text-input" placeholder="Or type a phrase manually..." style="width: 50%;">
+        <button id="btn-send-translation" style="background-color: #10b981;">Broadcast Text</button>
+      </div>
+    </div>
+
+    <!-- Listener UI (Read translated text) -->
+    <div id="listener-view" style="display: none;">
+      <p>Translation received from Signer (Real-time):</p>
+      <div id="translation-display" style="font-size: 24px; font-weight: bold; background-color: #111216; padding: 20px; border-radius: 8px; border: 1px dashed #6366f1; color: #4ade80; min-height: 50px; display: flex; align-items: center; justify-content: center;">
+        Waiting for Signer to translate...
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Video Streaming & MediaPipe Landmark Extraction</h2>
+    <button id="btn-start-camera" style="margin-bottom: 10px; background-color: #10b981;">Enable Camera</button>
+    <div class="video-grid">
+      <div class="video-container">
+        <video id="local-video" autoplay playsinline muted></video>
+        <div class="video-label">Local Camera (You)</div>
+      </div>
+      <div class="video-container" id="remote-container">
+        <video id="remote-video" autoplay playsinline></video>
+        <div class="video-label">Remote Peer</div>
+      </div>
+      <!-- Processing canvas showing MediaPipe hand skeletons -->
+      <div class="video-container" id="mediapipe-container" style="display: none;">
+        <canvas id="mediapipe-canvas"></canvas>
+        <div class="video-label" style="color: #ec4899;">MediaPipe Hand Overlay (5Hz)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Activity Log</h2>
+    <div id="log" class="log-box"></div>
+  </div>
+
+  <!-- Socket.io Client -->
+  <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+
+  <!-- MediaPipe Hands CDN Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+    const socketStatus = document.getElementById('socket-status');
+    const btnCreateRoom = document.getElementById('btn-create-room');
+    const btnJoinRoom = document.getElementById('btn-join-room');
+    const inputRoomId = document.getElementById('input-room-id');
+    const shareSection = document.getElementById('share-section');
+    const roomLink = document.getElementById('room-link');
+    const btnCopyLink = document.getElementById('btn-copy-link');
+    const logBox = document.getElementById('log');
+    
+    const localVideo = document.getElementById('local-video');
+    const remoteVideo = document.getElementById('remote-video');
+    const btnStartCamera = document.getElementById('btn-start-camera');
+
+    // Role and translation UI elements
+    const translationCard = document.getElementById('translation-card');
+    const roleBadge = document.getElementById('role-badge');
+    const mediapipeStatus = document.getElementById('mediapipe-status');
+    const signerView = document.getElementById('signer-view');
+    const listenerView = document.getElementById('listener-view');
+    const signerTextInput = document.getElementById('signer-text-input');
+    const btnSendTranslation = document.getElementById('btn-send-translation');
+    const translationDisplay = document.getElementById('translation-display');
+    const btnToggleProcessing = document.getElementById('btn-toggle-processing');
+    const signerLocalDetection = document.getElementById('signer-local-detection');
+    
+    const mediapipeCanvas = document.getElementById('mediapipe-canvas');
+    const mediapipeCanvasCtx = mediapipeCanvas.getContext('2d');
+    const mediapipeContainer = document.getElementById('mediapipe-container');
+    const remoteContainer = document.getElementById('remote-container');
+
+    // Generate random Host ID for client identification
+    const clientHostId = 'user_' + Math.random().toString(36).substr(2, 9);
+    
+    // WebRTC & Translation Variables
+    let localStream = null;
+    let peerConnection = null;
+    let currentRoom = null;
+    let myRole = null; // 'signer' | 'listener'
+    let isTrackingActive = true;
+    
+    let handsInstance = null;
+    let trackingIntervalId = null;
+    let mediapipeLoaded = false;
+
+    // Buffer to collect 5 frames (1 second of capture at 5Hz) before sending to backend Model
+    let frameBuffer = [];
+    let lastSentPhrase = "";
+    
+    // Store latest coordinate set detected by MediaPipe
+    let latestHandCoordinates = null;
+
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    // Connect to Socket.io
+    const socket = io();
+
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'log-time';
+      timeSpan.textContent = new Date().toLocaleTimeString();
+      
+      const contentSpan = document.createElement('span');
+      contentSpan.className = `log-${type}`;
+      contentSpan.textContent = message;
+      
+      entry.appendChild(timeSpan);
+      entry.appendChild(contentSpan);
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // Initialize MediaPipe Hands
+    function initMediaPipe() {
+      try {
+        log("Loading MediaPipe Hands...");
+        handsInstance = new Hands({
+          locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+          }
+        });
+
+        handsInstance.setOptions({
+          maxNumHands: 2,
+          modelComplexity: 1,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+
+        handsInstance.onResults(onHandResults);
+        
+        mediapipeLoaded = true;
+        mediapipeStatus.textContent = "MediaPipe Active";
+        mediapipeStatus.style.backgroundColor = "#10b981";
+        log("MediaPipe Hands loaded successfully.", "success");
+      } catch (err) {
+        log(`Error loading MediaPipe: ${err.message}`, "error");
+        mediapipeStatus.textContent = "MediaPipe Failed";
+        mediapipeStatus.style.backgroundColor = "#ef4444";
+      }
+    }
+
+    // Process Hand Results
+    function onHandResults(results) {
+      const videoWidth = localVideo.videoWidth || 320;
+      const videoHeight = localVideo.videoHeight || 240;
+      mediapipeCanvas.width = videoWidth;
+      mediapipeCanvas.height = videoHeight;
+
+      // Draw original camera frame
+      mediapipeCanvasCtx.clearRect(0, 0, videoWidth, videoHeight);
+      mediapipeCanvasCtx.drawImage(results.image, 0, 0, videoWidth, videoHeight);
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        // Find the hand detected with the highest confidence/accuracy
+        let bestHandIndex = 0;
+        let maxScore = 0;
+        
+        if (results.multiHandedness && results.multiHandedness.length > 0) {
+          results.multiHandedness.forEach((hand, idx) => {
+            if (hand.score > maxScore) {
+              maxScore = hand.score;
+              bestHandIndex = idx;
+            }
+          });
+        }
+        
+        const landmarks = results.multiHandLandmarks[bestHandIndex];
+        
+        // Extract 63 coordinates (21 landmarks * 3 values [1 - x, y, z])
+        // We invert the X coordinate (1 - lm.x) to correct for camera mirror flipping
+        const coordinates = [];
+        landmarks.forEach(lm => {
+          coordinates.push(1 - lm.x, lm.y, lm.z);
+        });
+        
+        latestHandCoordinates = coordinates;
+
+        // Draw skeleton overlay for all detected hands
+        results.multiHandLandmarks.forEach(handLandmarks => {
+          drawSkeleton(handLandmarks, mediapipeCanvasCtx, videoWidth, videoHeight);
+        });
+      } else {
+        latestHandCoordinates = null;
+      }
+    }
+
+    // Skeleton drawer helper
+    function drawSkeleton(landmarks, ctx, width, height) {
+      ctx.fillStyle = '#ec4899';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+
+      // Draw joints
+      landmarks.forEach(lm => {
+        const cx = lm.x * width;
+        const cy = lm.y * height;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+
+      // Connections structure (wrist to fingers)
+      const connections = [
+        [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+        [0, 5], [5, 6], [6, 7], [7, 8], // Index
+        [5, 9], [9, 10], [10, 11], [11, 12], // Middle
+        [9, 13], [13, 14], [14, 15], [15, 16], // Ring
+        [13, 17], [17, 18], [18, 19], [19, 20], [0, 17] // Pinky
+      ];
+
+      connections.forEach(([start, end]) => {
+        const sx = landmarks[start].x * width;
+        const sy = landmarks[start].y * height;
+        const ex = landmarks[end].x * width;
+        const ey = landmarks[end].y * height;
+
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(ex, ey);
+        ctx.stroke();
+      });
+    }
+
+    // Capture Local Camera
+    async function startCamera() {
+      try {
+        log('Requesting local camera access...');
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+        log('Camera enabled successfully!', 'success');
+        btnStartCamera.style.backgroundColor = '#6b7280';
+        btnStartCamera.textContent = 'Camera Active';
+        btnStartCamera.disabled = true;
+
+        if (peerConnection) {
+          localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+          });
+          log('Attached local stream tracks to active WebRTC Connection');
+        }
+        
+        // Load MediaPipe once camera is live
+        initMediaPipe();
+      } catch (err) {
+        log(`Camera access failed: ${err.message}. Please trigger manually.`, 'error');
+      }
+    }
+
+    // Auto-request camera on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      startCamera();
+    });
+
+    btnStartCamera.addEventListener('click', () => {
+      startCamera();
+    });
+
+    socket.on('connect', () => {
+      socketStatus.textContent = 'Connected';
+      socketStatus.className = 'status-badge status-connected';
+      log(`Socket.io connected (Socket ID: ${socket.id})`, 'success');
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRoomId = urlParams.get('room');
+      if (urlRoomId) {
+        inputRoomId.value = urlRoomId;
+        joinRoom(urlRoomId);
+      }
+    });
+
+    socket.on('disconnect', () => {
+      socketStatus.textContent = 'Disconnected';
+      socketStatus.className = 'status-badge status-disconnected';
+      log('Socket.io disconnected', 'error');
+    });
+
+    // WebRTC Signaling Handling
+    socket.on('user-joined', async (data) => {
+      log(`Peer joined: ${data.userId} as ${data.role || 'unknown'}. Initiating WebRTC call...`, 'success');
+      initiateWebRTCCall();
+    });
+
+    socket.on('webrtc-offer', async (offer) => {
+      try {
+        createPeerConnection();
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('webrtc-answer', { answer, room: currentRoom });
+      } catch (err) {
+        log(`Error handling WebRTC Offer: ${err.message}`, 'error');
+      }
+    });
+
+    socket.on('webrtc-answer', async (answer) => {
+      try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (err) {
+        log(`Error setting remote description: ${err.message}`, 'error');
+      }
+    });
+
+    socket.on('ice-candidate', async (candidate) => {
+      try {
+        if (peerConnection) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+      } catch (err) {
+        log(`Error adding ICE candidate: ${err.message}`, 'error');
+      }
+    });
+
+    // Translation Data Event
+    socket.on('translation-data', (data) => {
+      if (myRole === 'listener') {
+        translationDisplay.textContent = data.text;
+      }
+    });
+
+    socket.on('peer-left', (message) => {
+      log(`Peer left: ${message}`, 'error');
+      if (remoteVideo.srcObject) {
+        remoteVideo.srcObject = null;
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      if (myRole === 'listener') {
+        translationDisplay.textContent = 'Waiting for Signer to translate...';
+      }
+    });
+
+    function createPeerConnection() {
+      if (peerConnection) return;
+      peerConnection = new RTCPeerConnection(rtcConfig);
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', { candidate: event.candidate, room: currentRoom });
+        }
+      };
+
+      peerConnection.ontrack = (event) => {
+        log('Received remote video stream', 'success');
+        if (event.streams && event.streams[0]) {
+          remoteVideo.srcObject = event.streams[0];
+        }
+      };
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          peerConnection.addTrack(track, localStream);
+        });
+      }
+    }
+
+    async function initiateWebRTCCall() {
+      try {
+        createPeerConnection();
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        socket.emit('webrtc-offer', { offer, room: currentRoom });
+      } catch (err) {
+        log(`Failed to initiate WebRTC call: ${err.message}`, 'error');
+      }
+    }
+
+    // Toggle processing loops
+    btnToggleProcessing.addEventListener('click', () => {
+      isTrackingActive = !isTrackingActive;
+      if (isTrackingActive) {
+        btnToggleProcessing.textContent = "Stop MediaPipe Tracking";
+        btnToggleProcessing.style.backgroundColor = "#ef4444";
+        log("MediaPipe tracking resumed.");
+      } else {
+        btnToggleProcessing.textContent = "Start MediaPipe Tracking";
+        btnToggleProcessing.style.backgroundColor = "#10b981";
+        signerLocalDetection.textContent = "Tracking stopped.";
+        log("MediaPipe tracking paused.");
+      }
+    });
+
+    // Start 5Hz MediaPipe frame tracking loop
+    function startMediaPipeTrackingLoop() {
+      if (trackingIntervalId) clearInterval(trackingIntervalId);
+      
+      log("Initializing MediaPipe tracking loop at 5Hz (5 frames/sec)...", "success");
+      
+      trackingIntervalId = setInterval(async () => {
+        if (!isTrackingActive || !mediapipeLoaded || !localStream || !handsInstance) return;
+        
+        try {
+          // Send video frame to MediaPipe Hands instance to extract coordinates
+          await handsInstance.send({ image: localVideo });
+          
+          if (latestHandCoordinates) {
+            // Buffer the 63 hand coordinates array
+            frameBuffer.push(latestHandCoordinates);
+            signerLocalDetection.textContent = `[TRACKING]: Hand landmarks captured. Buffer: ${frameBuffer.length}/5 frames.`;
+            signerLocalDetection.style.color = "#38bdf8";
+          } else {
+            // No hands detected in this frame
+            frameBuffer = []; // reset buffer
+            signerLocalDetection.textContent = `[DETECTION ERROR]: CANNOT DETECT SIGN LANGUAGE / NO HAND DETECTED`;
+            signerLocalDetection.style.color = "#ef4444";
+            
+            if (lastSentPhrase !== "CANNOT DETECT SIGN LANGUAGE") {
+              lastSentPhrase = "CANNOT DETECT SIGN LANGUAGE";
+              socket.emit('translation-data', { text: "CANNOT DETECT SIGN LANGUAGE", room: currentRoom });
+              log(`Status: CANNOT DETECT SIGN LANGUAGE (No hands detected)`, 'error');
+            }
+          }
+
+          // Once we collect 5 frames (1 second worth of coordinates), feed them to backend ML model
+          if (frameBuffer.length >= 5) {
+            const payload = { frames: frameBuffer };
+            frameBuffer = []; // Reset buffer
+
+            try {
+              signerLocalDetection.textContent = `[MODEL INFERENCE]: Feeding coordinates to Model...`;
+              signerLocalDetection.style.color = "#fbbf24";
+              
+              const res = await fetch('/app/translate/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              
+              const responseData = await res.json();
+              
+              if (responseData.data && responseData.data.length > 0) {
+                const translatedWord = responseData.data.join(" ");
+                signerLocalDetection.textContent = `[MODEL SUCCESS]: Translated -> "${translatedWord}"`;
+                signerLocalDetection.style.color = "#10b981";
+
+                if (translatedWord !== lastSentPhrase) {
+                  lastSentPhrase = translatedWord;
+                  socket.emit('translation-data', { text: translatedWord, room: currentRoom });
+                  log(`Model Translated & Broadcasted: "${translatedWord}"`, 'success');
+                }
+              } else {
+                signerLocalDetection.textContent = `[MODEL CONFIDENCE ERROR]: Cannot confidently translate gesture.`;
+                signerLocalDetection.style.color = "#ef4444";
+                
+                if (lastSentPhrase !== "CANNOT DETECT SIGN LANGUAGE") {
+                  lastSentPhrase = "CANNOT DETECT SIGN LANGUAGE";
+                  socket.emit('translation-data', { text: "CANNOT DETECT SIGN LANGUAGE", room: currentRoom });
+                  log(`Inference confidence below threshold. Broadcasted: "CANNOT DETECT SIGN LANGUAGE"`, 'error');
+                }
+              }
+            } catch (err) {
+              console.error("Backend model API call failed: ", err);
+              signerLocalDetection.textContent = `[API ERROR]: Failed to reach translation model.`;
+              signerLocalDetection.style.color = "#ef4444";
+            }
+          }
+          
+        } catch (e) {
+          console.debug("MediaPipe process exception: ", e);
+        }
+      }, 200); // 200ms = 5 times per second
+    }
+
+    // Create Room
+    btnCreateRoom.addEventListener('click', async () => {
+      log(`Requesting room ID from server using hostId: ${clientHostId}...`);
+      try {
+        const response = await fetch(`/app/socket/roomid?hostId=${clientHostId}`);
+        const data = await response.json();
+        
+        if (data.success && data.roomId) {
+          log(`Room created successfully! Room ID: ${data.roomId}`, 'success');
+          const fullLink = `${window.location.origin}/?room=${data.roomId}`;
+          roomLink.href = fullLink;
+          roomLink.textContent = fullLink;
+          shareSection.style.display = 'block';
+          joinRoom(data.roomId);
+        } else {
+          log(`Failed to create room: ${data.message || 'Unknown error'}`, 'error');
+        }
+      } catch (err) {
+        log(`Error creating room: ${err.message}`, 'error');
+      }
+    });
+
+    btnJoinRoom.addEventListener('click', () => {
+      const id = inputRoomId.value.trim();
+      if (!id) return;
+      joinRoom(id);
+    });
+
+    btnCopyLink.addEventListener('click', () => {
+      navigator.clipboard.writeText(roomLink.href);
+      alert('Room link copied to clipboard!');
+    });
+
+    // Manual Broadcast (Signer Override)
+    btnSendTranslation.addEventListener('click', () => {
+      const text = signerTextInput.value.trim();
+      if (!text) return;
+      log(`Manual Override Broadcast: "${text}"`);
+      socket.emit('translation-data', { text, room: currentRoom });
+      signerTextInput.value = '';
+    });
+
+    signerTextInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        btnSendTranslation.click();
+      }
+    });
+
+    function joinRoom(roomId) {
+      currentRoom = roomId;
+      log(`Sending join-room event for room: ${roomId}...`);
+      socket.emit('join-room', roomId, (response) => {
+        if (response && response.success) {
+          log(`Successfully joined room ${roomId}! Assigned role: ${response.role}`, 'success');
+          setupRoleUI(response.role);
+        } else {
+          log(`Failed to join room: ${response ? response.message : 'No response from server'}`, 'error');
+        }
+      });
+    }
+
+    function setupRoleUI(role) {
+      myRole = role;
+      translationCard.style.display = 'block';
+      roleBadge.textContent = role.toUpperCase();
+      
+      if (role === 'signer') {
+        roleBadge.style.backgroundColor = '#d97706'; // orange/yellow
+        signerView.style.display = 'block';
+        listenerView.style.display = 'none';
+        
+        // Show MediaPipe skeleton container on signer's side
+        mediapipeContainer.style.display = 'block';
+        remoteContainer.style.display = 'none'; // Signer looks at themselves & MediaPipe skeleton overlay
+        
+        // Start 5Hz loop
+        startMediaPipeTrackingLoop();
+      } else if (role === 'listener') {
+        roleBadge.style.backgroundColor = '#10b981'; // green
+        signerView.style.display = 'none';
+        listenerView.style.display = 'block';
+        mediapipeContainer.style.display = 'none';
+        remoteContainer.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
