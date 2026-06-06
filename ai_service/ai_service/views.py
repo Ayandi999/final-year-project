@@ -1,5 +1,7 @@
 import os
+import datetime
 import json
+from collections import Counter
 import numpy as np
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -125,56 +127,50 @@ def predict(request):
         # If it is a 1D flat array (a single frame), convert it to a 2D array [frames]
         if isinstance(frames, list) and len(frames) > 0 and not isinstance(frames[0], list):
             frames = [frames]
-            
-        # Write received JSON input payload to a debug file for logging
-        try:
-            debug_file_path = os.path.join(BASE_DIR, "debug_input.json")
-            with open(debug_file_path, "w", encoding="utf-8") as df:
-                json.dump({"frames": frames}, df)
-        except Exception as e:
-            print(f"[DEBUG LOG ERROR] Failed to write debug input file: {e}")
 
         # 2. Scale preprocessing using NumPy
-        frames_np = np.array(frames, dtype=np.float32)
+        frames_np = np.array(frames, dtype=np.float32)  # (1, 5, 126) or (5, 126)
         if scaler is not None and "mean" in scaler and "scale" in scaler:
             mean = np.array(scaler["mean"], dtype=np.float32)
             scale = np.array(scaler["scale"], dtype=np.float32)
             if frames_np.shape[-1] == mean.shape[-1] and frames_np.shape[-1] == scale.shape[-1]:
                 safe_scale = np.where(scale == 0, 1.0, scale)
                 frames_np = (frames_np - mean) / safe_scale
-                
-        # 3. Model Inference
-        predictions = model.predict(frames_np, verbose=0)
-        
-        # Convert prediction back to numpy array in case it is a PyTorch tensor
-        if hasattr(predictions, "numpy"):
-            predictions_np = predictions.numpy()
-        elif hasattr(predictions, "cpu"):
-            predictions_np = predictions.cpu().detach().numpy()
+
+        # Flatten to 2D regardless of batch dimensions
+        if frames_np.ndim == 3:
+            frames_np = frames_np.reshape(-1, 126)
+
+        # 3. Model Inference (Direct call for low-overhead real-time prediction)
+        predictions_tensor = model(frames_np, training=False)
+        if hasattr(predictions_tensor, "numpy"):
+            predictions_np = predictions_tensor.numpy()
+        elif hasattr(predictions_tensor, "cpu"):
+            predictions_np = predictions_tensor.cpu().detach().numpy()
         else:
-            predictions_np = np.array(predictions)
+            predictions_np = np.array(predictions_tensor)
             
-        # 4. Map outputs using labels.json and thresholding (exactly as Node.js did)
-        best_word = None
-        highest_conf = 0.0
-        threshold = 0.55
+        # 4. Map outputs using labels.json and majority agreement
+        words = []
+        threshold = 0.75
         
         # predictions_np shape: (num_frames, num_classes)
-        print(f"\n[INFERENCE] Input shape: {frames_np.shape}")
         for i, frame_preds in enumerate(predictions_np):
             best_idx = int(np.argmax(frame_preds))
             max_score = float(frame_preds[best_idx])
             word = labels.get(str(best_idx), "unknown")
-            print(f"  Frame {i}: Prediction='{word}' (Class {best_idx}), Confidence={max_score:.4f}")
             
             if max_score > threshold:
                 if word and word != "unknown":
-                    if max_score > highest_conf:
-                        highest_conf = max_score
-                        best_word = word
+                    words.append(word)
                     
-        result_words = [best_word] if best_word is not None else []
-        print(f"[INFERENCE RESULT] Output Word (Highest Conf): {result_words} (Confidence: {highest_conf:.4f})")
+        # Majority agreement check: require at least 3 frames out of 5 to agree
+        result_words = []
+        if words:
+            most_common = Counter(words).most_common(1)[0]
+            word_name, agree_count = most_common
+            if agree_count >= 3:  # At least 3 frames agree
+                result_words = [word_name]
                     
         return JsonResponse({
             "success": True,
@@ -182,5 +178,4 @@ def predict(request):
         })
         
     except Exception as e:
-        print(f"[PREDICT ERROR] {e}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)

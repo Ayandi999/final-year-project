@@ -9,19 +9,12 @@ async function trnslateASecnd(req: Request, res: Response) {
         return res.status(400).json({ success: false, error: "Invalid frames payload" });
     }
 
-    // Print coordinates to the terminal once before running model inference
-    console.log(`[MODEL INFERENCE] Input Shape: [${frames.length} frames, ${frames[0]?.length} elements]. Frame 0:`);
-    console.log(frames[0]);
-
     try {
         // 2. Perform prediction using the decoupled Django microservice
         const uniqueWords = await trnslationFunction(frames);
-        
-        console.log(`[MODEL INFERENCE] decoupled AI service returned words:`, uniqueWords);
        
         res.status(200).json(new ApiResponse(200, uniqueWords, "Translation Successfull"));    
     } catch (error: any) {
-        console.error(`[MODEL INFERENCE ERROR] ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 }

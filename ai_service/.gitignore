@@ -24,3 +24,5 @@ staticfiles/
 
 # Local log and debug files
 debug_input.json
+logs/
+

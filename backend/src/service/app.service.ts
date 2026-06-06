@@ -3,7 +3,6 @@ import 'dotenv/config';
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000/predict';
 
 export async function trnslationFunction(data: number[] | number[][]): Promise<string[]> {
-    console.log(`[AI SERVICE] Sending ${data.length} frames to ${AI_SERVICE_URL}`);
     try {
         const response = await fetch(AI_SERVICE_URL, {
             method: 'POST',
@@ -25,7 +24,6 @@ export async function trnslationFunction(data: number[] | number[][]): Promise<s
 
         return resData.data || [];
     } catch (error: any) {
-        console.error('[AI SERVICE ERROR] Failed to perform translation:', error.message);
         throw error;
     }
 }

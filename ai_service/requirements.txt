@@ -1,5 +1,11 @@
-django>=5.0.0
-djangorestframework>=3.14.0
-h5py>=3.10.0
-numpy>=1.23.5,<2.0.0
-tensorflow-cpu==2.15.0
+django
+djangorestframework
+tensorflow==2.21.0
+keras==3.12.2
+numpy==2.2.6
+scikit-learn==1.7.2
+joblib==1.5.3
+mediapipe
+opencv-python
+django-cors-headers
+gunicorn

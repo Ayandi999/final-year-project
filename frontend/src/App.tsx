@@ -350,8 +350,8 @@ export default function App() {
                 lastCaptureTimeRef.current = now;
                 frameBufferRef.current.push(coords126);
                 
-                // Once we have collected 10 frames (1 second elapsed), send batch to model
-                if (frameBufferRef.current.length === 10) {
+                // Once we have collected 5 frames (500ms elapsed), send batch to model
+                if (frameBufferRef.current.length === 5) {
                   const batchToSend = [...frameBufferRef.current];
                   frameBufferRef.current = [];
                   sendFramesToBackend(batchToSend);
