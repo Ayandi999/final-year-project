@@ -1,17 +1,31 @@
-import * as tf from '@tensorflow/tfjs';
-import { model } from '..';
+import 'dotenv/config';
 
-//@ts-ignore
-async function trnslationFunction(data){
-    const output = tf.tidy(()=>{
-        const inputTensor = tf.tensor2d(data)
-        const predicton = model?.predict(inputTensor) as tf.Tensor;
-        const result = predicton.dataSync();
-        return result;
-    })
-    return output;
-}
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000/predict';
 
-export {
-    trnslationFunction
+export async function trnslationFunction(data: number[] | number[][]): Promise<string[]> {
+    console.log(`[AI SERVICE] Sending ${data.length} frames to ${AI_SERVICE_URL}`);
+    try {
+        const response = await fetch(AI_SERVICE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ frames: data }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`AI Service returned status ${response.status}: ${errorText}`);
+        }
+
+        const resData = (await response.json()) as { success: boolean; data?: string[]; error?: string };
+        if (!resData.success) {
+            throw new Error(resData.error || 'Unknown error from AI service');
+        }
+
+        return resData.data || [];
+    } catch (error: any) {
+        console.error('[AI SERVICE ERROR] Failed to perform translation:', error.message);
+        throw error;
+    }
 }

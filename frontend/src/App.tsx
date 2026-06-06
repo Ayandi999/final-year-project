@@ -27,9 +27,45 @@ const HAND_CONNECTIONS = [
 ];
 
 // Read endpoints from environment or fall back to standard local ports
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 
 export default function App() {
+  const [backendUrl, setBackendUrl] = useState(DEFAULT_BACKEND_URL);
+  
+  // Self-healing backend port auto-detector
+  useEffect(() => {
+    if (import.meta.env.VITE_BACKEND_URL) return;
+    
+    const detectBackend = async () => {
+      // 1. Try 8080
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+        const res = await fetch('http://localhost:8080/health', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          console.log('[BACKEND DETECTED] Using http://localhost:8080');
+          setBackendUrl('http://localhost:8080');
+          return;
+        }
+      } catch (e) {}
+      
+      // 2. Try 8083
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+        const res = await fetch('http://localhost:8083/health', { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          console.log('[BACKEND DETECTED] Using http://localhost:8083');
+          setBackendUrl('http://localhost:8083');
+          return;
+        }
+      } catch (e) {}
+    };
+    detectBackend();
+  }, []);
+
   // App views: 'landing' | 'self' | 'room'
   const [view, setView] = useState<'landing' | 'self' | 'room'>('landing');
   
@@ -59,9 +95,10 @@ export default function App() {
   const landmarkerRef = useRef<HandLandmarker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const framesBufferRef = useRef<number[][]>([]);
-  const lastSampleTimeRef = useRef<number>(0); // Keeps track of 5 fps sampling rate (every 200ms)
   const hasLoggedPayloadRef = useRef(false);
+  const isSendingRef = useRef(false); // Throttles frame-by-frame API requests to avoid browser network congestion
+  const frameBufferRef = useRef<number[][]>([]);
+  const lastCaptureTimeRef = useRef<number>(0);
   
   // Network connections refs
   const socketRef = useRef<Socket | null>(null);
@@ -169,18 +206,17 @@ export default function App() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    framesBufferRef.current = [];
   };
 
   // Post coordinate frames to the backend prediction endpoint
-  const sendFramesToBackend = async (framesToSend: number[][]) => {
+  const sendFramesToBackend = async (framesToSend: number[] | number[][]) => {
     if (!hasLoggedPayloadRef.current) {
       console.log('[DEBUG] First coordinate frames payload being sent to backend:', { frames: framesToSend });
       hasLoggedPayloadRef.current = true;
     }
     setIsTranslating(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/app/translate/translate`, {
+      const response = await fetch(`${backendUrl}/app/translate/translate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -282,37 +318,44 @@ export default function App() {
             // Butter-smooth skeletal drawing on every single frame (~30-60 fps)
             drawHandSkeleton(ctx, results.landmarks);
             
-            // Sample coordinates at EXACTLY 5 frames per second (every 200ms)
-            const now = performance.now();
-            if (now - lastSampleTimeRef.current >= 200) {
-              lastSampleTimeRef.current = now;
+            // Extract coordinates of both hands on every frame and predict immediately
+            let leftHandCoords = new Array(63).fill(0);
+            let rightHandCoords = new Array(63).fill(0);
+            
+            results.landmarks.forEach((handLandmarks, idx) => {
+              const handednessList = results.handedness?.[idx];
+              const category = handednessList?.[0];
+              const label = category?.displayName || category?.categoryName;
               
-              let leftHandCoords = new Array(63).fill(0);
-              let rightHandCoords = new Array(63).fill(0);
+              const coords = handLandmarks.flatMap(lm => [lm.x, lm.y, lm.z]);
               
-              results.landmarks.forEach((handLandmarks, idx) => {
-                const handednessList = results.handedness?.[idx];
-                const category = handednessList?.[0];
-                const label = category?.displayName || category?.categoryName;
-                
-                const coords = handLandmarks.flatMap(lm => [lm.x, lm.y, lm.z]);
-                
-                if (coords.length === 63) {
-                  if (label === 'Left') {
-                    leftHandCoords = coords;
-                  } else if (label === 'Right') {
-                    rightHandCoords = coords;
-                  } else {
-                    // Fallback order: first hand is left, second hand is right
-                    if (idx === 0) leftHandCoords = coords;
-                    else if (idx === 1) rightHandCoords = coords;
-                  }
+              if (coords.length === 63) {
+                if (label === 'Left') {
+                  leftHandCoords = coords;
+                } else if (label === 'Right') {
+                  rightHandCoords = coords;
+                } else {
+                  // Fallback order: first hand is left, second hand is right
+                  if (idx === 0) leftHandCoords = coords;
+                  else if (idx === 1) rightHandCoords = coords;
                 }
-              });
-              
-              const coords126 = [...leftHandCoords, ...rightHandCoords];
-              if (coords126.length === 126) {
-                framesBufferRef.current.push(coords126);
+              }
+            });
+            
+            const coords126 = [...leftHandCoords, ...rightHandCoords];
+            if (coords126.length === 126) {
+              const now = performance.now();
+              // Capture 1 frame every 100ms (10 frames per second)
+              if (now - lastCaptureTimeRef.current >= 100) {
+                lastCaptureTimeRef.current = now;
+                frameBufferRef.current.push(coords126);
+                
+                // Once we have collected 10 frames (1 second elapsed), send batch to model
+                if (frameBufferRef.current.length === 10) {
+                  const batchToSend = [...frameBufferRef.current];
+                  frameBufferRef.current = [];
+                  sendFramesToBackend(batchToSend);
+                }
               }
             }
           }
@@ -328,7 +371,7 @@ export default function App() {
   const triggerCreateRoom = async () => {
     try {
       const hostId = crypto.randomUUID();
-      const response = await fetch(`${BACKEND_URL}/app/socket/roomid?hostId=${hostId}`);
+      const response = await fetch(`${backendUrl}/app/socket/roomid?hostId=${hostId}`);
       const data = await response.json();
       
       if (data.success && data.roomId) {
@@ -347,7 +390,7 @@ export default function App() {
 
   // Initialize WebSockets and room-joining routine
   const initializeRoomSocket = (roomIdStr: string, chosenRole: 'signer' | 'listener') => {
-    const socket = io(BACKEND_URL);
+    const socket = io(backendUrl);
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -578,28 +621,11 @@ export default function App() {
         socketRef.current = null;
       }
       setPeerConnected(false);
+      isSendingRef.current = false;
     };
   }, [view, role]);
 
-  // Decoupled 3-second translation batch interval.
-  // Every 3 seconds, if landmarks are present, we grab the 5fps-buffered frames, send them, and flush the buffer.
-  useEffect(() => {
-    if (view === 'landing' || role !== 'signer') return;
-
-    const translationInterval = setInterval(() => {
-      if (framesBufferRef.current.length > 0) {
-        const batch = [...framesBufferRef.current];
-        framesBufferRef.current = []; // Clear frames buffer
-        sendFramesToBackend(batch);
-      }
-    }, 3000); // 3 seconds interval
-
-    return () => {
-      clearInterval(translationInterval);
-    };
-  }, [view, role]);
-
-  // CRITICAL REPAIR: Dynamic 3-line subtitles truncation engine.
+  // Dynamic 3-line subtitles truncation engine.
   // Measures the subtitle text element scrollHeight and compares it against three lineheights.
   // Dynamically slices the oldest words and triggers socket sync updates until the text fits nicely.
   useEffect(() => {
