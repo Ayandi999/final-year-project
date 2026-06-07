@@ -171,7 +171,8 @@ export default function App() {
       const constraints = {
         video: {
           width: { ideal: 640 },
-          height: { ideal: 360 },
+          height: { ideal: 480 },
+          aspectRatio: { ideal: 1.333333 },
           facingMode: "user"
         },
         audio: true // Bidirectional audio like Google Meet
