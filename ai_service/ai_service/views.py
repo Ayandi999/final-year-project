@@ -128,6 +128,21 @@ def predict(request):
         if isinstance(frames, list) and len(frames) > 0 and not isinstance(frames[0], list):
             frames = [frames]
 
+        # Log incoming JSON coordinates to logs/input_coordinates.jsonl
+        try:
+            log_dir = os.path.join(BASE_DIR, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            input_log_path = os.path.join(log_dir, "input_coordinates.jsonl")
+            with open(input_log_path, "a", encoding="utf-8") as f:
+                log_entry = {
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "frames_count": len(frames),
+                    "frames": frames
+                }
+                f.write(json.dumps(log_entry) + "\n")
+        except Exception:
+            pass
+
         # 2. Scale preprocessing using NumPy
         frames_np = np.array(frames, dtype=np.float32)  # (1, 5, 126) or (5, 126)
         if scaler is not None and "mean" in scaler and "scale" in scaler:
@@ -171,6 +186,33 @@ def predict(request):
             word_name, agree_count = most_common
             if agree_count >= 3:  # At least 3 frames agree
                 result_words = [word_name]
+
+        # Log predictions to logs/predictions.jsonl
+        try:
+            log_dir = os.path.join(BASE_DIR, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            prediction_log_path = os.path.join(log_dir, "predictions.jsonl")
+            with open(prediction_log_path, "a", encoding="utf-8") as f:
+                frame_logs = []
+                for i, frame_preds in enumerate(predictions_np):
+                    best_idx = int(np.argmax(frame_preds))
+                    max_score = float(frame_preds[best_idx])
+                    word = labels.get(str(best_idx), "unknown")
+                    frame_logs.append({
+                        "frame_index": i,
+                        "class_index": best_idx,
+                        "word": word,
+                        "confidence": max_score
+                    })
+                
+                log_entry = {
+                    "timestamp": datetime.datetime.now().isoformat(),
+                    "frames_predicted": frame_logs,
+                    "result_words": result_words
+                }
+                f.write(json.dumps(log_entry) + "\n")
+        except Exception:
+            pass
                     
         return JsonResponse({
             "success": True,
