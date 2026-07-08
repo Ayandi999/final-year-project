@@ -182,10 +182,13 @@ def predict(request):
         # Majority agreement check: require at least 3 frames out of 5 to agree
         result_words = []
         if words:
-            most_common = Counter(words).most_common(1)[0]
-            word_name, agree_count = most_common
-            if agree_count >= 3:  # At least 3 frames agree
-                result_words = [word_name]
+            if len(predictions_np) == 1:
+                result_words = words
+            else:
+                most_common = Counter(words).most_common(1)[0]
+                word_name, agree_count = most_common
+                if agree_count >= 3:  # At least 3 frames agree
+                    result_words = [word_name]
 
         # Log predictions to logs/predictions.jsonl
         try:

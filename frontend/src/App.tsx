@@ -97,8 +97,6 @@ export default function App() {
   const localStreamRef = useRef<MediaStream | null>(null);
   const hasLoggedPayloadRef = useRef(false);
   const isSendingRef = useRef(false); // Throttles frame-by-frame API requests to avoid browser network congestion
-  const frameBufferRef = useRef<number[][]>([]);
-  const lastCaptureTimeRef = useRef<number>(0);
   
   // Network connections refs
   const socketRef = useRef<Socket | null>(null);
@@ -258,6 +256,7 @@ export default function App() {
       console.error('Prediction API call failed:', err);
     } finally {
       setIsTranslating(false);
+      isSendingRef.current = false;
     }
   };
 
@@ -345,18 +344,9 @@ export default function App() {
             
             const coords126 = [...leftHandCoords, ...rightHandCoords];
             if (coords126.length === 126) {
-              const now = performance.now();
-              // Capture 1 frame every 100ms (10 frames per second)
-              if (now - lastCaptureTimeRef.current >= 100) {
-                lastCaptureTimeRef.current = now;
-                frameBufferRef.current.push(coords126);
-                
-                // Once we have collected 5 frames (500ms elapsed), send batch to model
-                if (frameBufferRef.current.length === 5) {
-                  const batchToSend = [...frameBufferRef.current];
-                  frameBufferRef.current = [];
-                  sendFramesToBackend(batchToSend);
-                }
+              if (!isSendingRef.current) {
+                isSendingRef.current = true;
+                sendFramesToBackend([coords126]);
               }
             }
           }
