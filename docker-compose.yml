@@ -7,14 +7,14 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - ai_service
+      - ai-service
     dns:
       - 8.8.8.8
       - 1.1.1.1
     environment:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
-      - AI_SERVICE_URL=http://ai_service:8000/predict
+      - AI_SERVICE_URL=http://ai-service:8000/predict
       - FRONTEND_URL=${FRONTEND_URL}
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -22,6 +22,6 @@ services:
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 
-  ai_service:
+  ai-service:
     build:
       context: ./ai_service
