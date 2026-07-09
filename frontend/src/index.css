@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
+@font-face {
+  font-family: 'Samarkan';
+  src: url('/fonts/samarkan/SAMAN___.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --bg: #F7F5F0;
   --bg-panel: rgba(255, 255, 255, 0.6);
@@ -875,14 +882,14 @@ body {
 }
 
 .landing-page-wrapper .hero-title-main {
-    font-size: 5.5rem;
+    font-size: 8rem; /* Scaled up from 5.5rem to fill screen beautifully */
     font-weight: 900;
-    letter-spacing: -2px;
+    letter-spacing: normal; /* Restored to normal for legible calligraphy spacing */
     text-transform: uppercase;
     color: var(--text-dark);
     display: inline-block;
     position: relative;
-    line-height: 1.1;
+    line-height: 1.25; /* Expanded slightly to prevent ascender/descender overlaps */
 }
 
 .landing-page-wrapper .hero-title-main span {
@@ -894,6 +901,8 @@ body {
 }
 
 .landing-page-wrapper .flag-saffron {
+    font-family: 'Samarkan', sans-serif !important;
+    letter-spacing: 4px !important; /* Stretched for elegant Indian calligraphy feel */
     color: #FF671F !important;
     background: none !important;
     -webkit-text-fill-color: #FF671F !important;
@@ -903,6 +912,8 @@ body {
 }
 
 .landing-page-wrapper .flag-white {
+    font-family: 'Samarkan', sans-serif !important;
+    letter-spacing: 4px !important;
     color: #FFFFFF !important;
     background: none !important;
     -webkit-text-fill-color: #FFFFFF !important;
@@ -912,6 +923,8 @@ body {
 }
 
 .landing-page-wrapper .flag-green {
+    font-family: 'Samarkan', sans-serif !important;
+    letter-spacing: 4px !important;
     color: #00E676 !important;
     background: none !important;
     -webkit-text-fill-color: #00E676 !important;
@@ -1012,9 +1025,11 @@ body {
 }
 
 .landing-page-wrapper .section-title {
-    font-size: 2.8rem;
+    font-family: 'Samarkan', sans-serif !important;
+    font-size: 3.8rem; /* Scaled up for Samarkan readability */
     font-weight: 800;
     color: var(--text-dark);
+    letter-spacing: 2px;
 }
 
 .landing-page-wrapper .mission-text {
@@ -1703,7 +1718,7 @@ body {
 
 /* RESPONSIVE ADAPTABILITY */
 @media (max-width: 1024px) {
-    .landing-page-wrapper .hero-title-main { font-size: 4.5rem; }
+    .landing-page-wrapper .hero-title-main { font-size: 6rem; }
     .landing-page-wrapper .learn-cards-grid { grid-template-columns: repeat(2, 1fr); }
     .landing-page-wrapper .team-avatars-grid { grid-template-columns: repeat(3, 1fr); }
 }
@@ -1714,7 +1729,7 @@ body {
     .landing-page-wrapper .navbar .nav-actions { display: none; }
     .landing-page-wrapper .navbar .hamburger { display: flex; }
     
-    .landing-page-wrapper .hero-title-main { font-size: 3.2rem; }
+    .landing-page-wrapper .hero-title-main { font-size: 4.2rem; }
     .landing-page-wrapper .hero-subtitle { font-size: 1.4rem; }
     
     .landing-page-wrapper .mission-grid { grid-template-columns: 1fr; gap: 40px; padding: 28px; }
