@@ -131,7 +131,7 @@ authRouter.post('/google-callback', async (req, res): Promise<any> => {
     // Exchange code for tokens
     const tokenResponse = await googleClient.getToken({
       code,
-      redirect_uri: 'http://localhost:5173', // Must match whitelisted frontend origin
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5173', // Must match whitelisted frontend origin in Google Cloud console
     });
 
     const idToken = tokenResponse.tokens.id_token;
