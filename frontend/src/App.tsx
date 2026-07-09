@@ -1538,6 +1538,12 @@ export default function App() {
           // Sync with the actual backend role to be safe
           setRole(response.role);
           triggerToast(`Connected to room as ${response.role.toUpperCase()}`);
+          
+          // If this user joins as Signer, immediately kick off the WebRTC offer 
+          // in case the Listener is already in the room waiting.
+          if (response.role === 'signer') {
+            setupSignerWebRTCOffer(roomIdStr);
+          }
         } else {
           console.error('Join room failed:', response.message);
           triggerToast(`Room join failed: ${response.message}`);
