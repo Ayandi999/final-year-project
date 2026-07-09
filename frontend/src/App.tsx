@@ -1189,7 +1189,7 @@ export default function App() {
       
       const rootUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
       const options = {
-        redirect_uri: 'http://localhost:5173', // Must match whitelisted redirect_uri
+        redirect_uri: window.location.origin, // Dynamically maps to localhost or your production domain
         client_id: clientId,
         access_type: 'offline',
         response_type: 'code',
@@ -1287,12 +1287,12 @@ export default function App() {
       const landmarker = await HandLandmarker.createFromOptions(vision, {
         baseOptions: {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
-          delegate: "CPU"
+          delegate: "GPU"
         },
         runningMode: "VIDEO",
         numHands: 2, // Support both hands tracking on the canvas
-        minHandDetectionConfidence: 0.4,
-        minHandPresenceConfidence: 0.4
+        minHandDetectionConfidence: 0.3,
+        minHandPresenceConfidence: 0.3
       });
       
       landmarkerRef.current = landmarker;
@@ -1827,8 +1827,7 @@ export default function App() {
           <nav className="navbar" aria-label="Main Navigation">
             <div className="container nav-container">
               <a href="#" className="nav-logo" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                <Tv size={28} className="video-placeholder-icon" style={{ color: 'var(--accent-primary)' }} />
-                <span>Silent Voice</span>
+                <span>SilenTalk</span>
               </a>
 
               <ul className="nav-links">

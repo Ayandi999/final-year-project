@@ -8,41 +8,17 @@ services:
       - "8080:8080"
     depends_on:
       - ai_service
-      - postgres
-      - valkey
     environment:
       - PORT=8080
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_NAME=final_yr_proj
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/final_yr_proj
-      - VALKEY_HOST=valkey
-      - VALKEY_PORT=6379
-      - VALKEY_URL=redis://valkey:6379
+      - DATABASE_URL=${DATABASE_URL}
+      - AI_SERVICE_URL=http://ai_service:8000/predict
+      - FRONTEND_URL=${FRONTEND_URL}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 
   ai_service:
     build:
       context: ./ai_service
-    ports:
-      - "8000:8000"
-
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=final_yr_proj
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  valkey:
-    image: valkey/valkey:7.2
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
