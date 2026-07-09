@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silent Voice — Indian Sign Language Translation Platform</title>
+    <meta name="description" content="Bridging the communication gap for India's deaf and hard-of-hearing community with real-time AI-powered Indian Sign Language translation.">
+    
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* ========================================================
+           DESIGN SYSTEM & CSS RESET
+           ======================================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #4F46E5;      /* Warm Indigo */
+            --primary-hover: #4338CA;
+            --accent: #F97316;       /* Soft Coral */
+            --accent-hover: #EA580C;
+            --bg-cream: #FFFBEB;     /* Cream background */
+            --text-dark: #1E293B;    /* Slate */
+            --text-light: #F8FAFC;
+            --border-light: rgba(30, 41, 59, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-blur: blur(12px);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-cream);
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        h1, h2, h3, h4 {
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition);
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            outline: none;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ========================================================
+           SECTION 1: STICKY GLASSMORPHIC NAVBAR
+           ======================================================== */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 64px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .nav-logo svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            opacity: 0.8;
+            position: relative;
+            padding: 4px 0;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            opacity: 1;
+            color: var(--primary);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-login {
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .btn-login:hover {
+            background: var(--primary);
+            color: var(--text-light);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.95rem;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: transparent;
+            z-index: 1001;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background-color: var(--text-dark);
+            border-radius: 3px;
+            transition: var(--transition);
+        }
+
+        /* Mobile Side Navigation Drawer */
+        .mobile-drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 300px;
+            height: 100vh;
+            background: var(--bg-cream);
+            box-shadow: -10px 0 30px rgba(30, 41, 59, 0.15);
+            z-index: 999;
+            padding: 100px 40px 40px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            transition: var(--transition);
+        }
+
+        .mobile-drawer.open {
+            right: 0;
+        }
+
+        .mobile-drawer .nav-links {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 24px;
+        }
+
+        /* ========================================================
+           SECTION 2: HERO / ARTISTIC HEADING
+           ======================================================== */
+        .hero {
+            min-height: 100vh;
+            padding-top: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.05) 0%, rgba(249, 115, 22, 0.04) 90%);
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+        }
+
+        /* Large Artistic Animating Letters */
+        .hero-title-container {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .hero-title-main {
+            font-size: 5.5rem;
+            font-weight: 900;
+            letter-spacing: -2px;
+            text-transform: uppercase;
+            color: var(--text-dark);
+            display: inline-block;
+            position: relative;
+            line-height: 1.1;
+        }
+
+        .hero-title-main span {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            animation: textMorph 8s infinite alternate ease-in-out;
+        }
+
+        @keyframes textMorph {
+            0% {
+                transform: scale(1) skewX(0deg);
+            }
+            50% {
+                transform: scale(1.02) skewX(2deg);
+            }
+            100% {
+                transform: scale(0.98) skewX(-2deg);
+            }
+        }
+
+        .hero-subtitle {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #475569;
+            max-width: 600px;
+        }
+
+        .hero-cta {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: var(--text-light);
+            padding: 16px 36px;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(79, 70, 229, 0.4);
+        }
+
+        .hero-cta svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            transition: var(--transition);
+        }
+
+        .hero-cta:hover svg {
+            transform: translateX(4px);
+        }
+
+        /* ========================================================
+           SECTION 3: MISSION SECTION
+           ======================================================== */
+        .mission-section {
+            padding: 120px 0;
+            background-color: #fff;
+        }
+
+        .mission-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .mission-image-area {
+            width: 100%;
+            aspect-ratio: 4/3;
+            border: 3px dashed var(--border-light);
+            border-radius: 24px;
+            background-color: var(--bg-cream);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #64748B;
+            padding: 40px;
+            gap: 16px;
+        }
+
+        .mission-image-area svg {
+            width: 64px;
+            height: 64px;
+            stroke: var(--primary);
+            opacity: 0.6;
+        }
+
+        .mission-content {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-label {
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--accent);
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .mission-text {
+            font-size: 1.1rem;
+            color: #475569;
+            line-height: 1.7;
+        }
+
+        .stat-card {
+            background-color: var(--bg-cream);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .stat-item h4 {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .stat-item p {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748B;
+            text-transform: uppercase;
+        }
+
+        /* ========================================================
+           SECTION 4: TRY IT YOURSELF (Interactive Sign Practice Game)
+           ======================================================== */
+        .try-section {
+            padding: 120px 0;
+            background: linear-gradient(180deg, #fff 0%, var(--bg-cream) 100%);
+        }
+
+        .try-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .try-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(30, 41, 59, 0.08);
+            border: 1px solid var(--border-light);
+            padding: 40px;
+            min-height: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Game Start Screen Styling */
+        .try-start-screen {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            max-width: 500px;
+        }
+
+        .try-start-screen svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--primary);
+            opacity: 0.9;
+        }
+
+        .btn-start-camera {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: var(--text-light);
+            padding: 16px 40px;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.25);
+        }
+
+        .btn-start-camera:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(79, 70, 229, 0.35);
+        }
+
+        /* Loader Animation */
+        .try-loader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(79, 70, 229, 0.1);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Interactive Split Panel Grid */
+        .try-game-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            width: 100%;
+        }
+
+        .try-game-left {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sign-ref-card {
+            background-color: var(--bg-cream);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sign-ref-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .sign-target-label {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(4px);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .sign-desc-box {
+            background-color: var(--bg-cream);
+            border-radius: 16px;
+            padding: 16px 20px;
+            border-left: 4px solid var(--primary);
+            font-size: 0.95rem;
+            color: #475569;
+        }
+
+        .try-game-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .video-container {
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 24px;
+            overflow: hidden;
+            position: relative;
+            background-color: #0f172a;
+            border: 1px solid var(--border-light);
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror camera */
+        }
+
+        .video-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1); /* Match mirrored feed */
+            pointer-events: none;
+        }
+
+        .practice-controls {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .btn-next-sign {
+            background: var(--accent);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+
+        .btn-next-sign:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .success-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(79, 70, 229, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+            z-index: 10;
+        }
+
+        .success-overlay.show {
+            opacity: 1;
+        }
+
+        .success-overlay svg {
+            width: 72px;
+            height: 72px;
+            fill: #fff;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+
+        /* Congratulations Finish State Screen */
+        .try-finish-screen {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            max-width: 480px;
+        }
+
+        .try-finish-screen svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--accent);
+        }
+
+        /* CTA Section for Full App */
+        .full-app-cta-card {
+            background: linear-gradient(135deg, var(--text-dark) 0%, #0f172a 100%);
+            border-radius: 28px;
+            padding: 40px;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            margin: 48px auto 0 auto;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+        .full-app-cta-card h3 {
+            font-size: 1.8rem;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .full-app-cta-card p {
+            color: #94a3b8;
+            max-width: 500px;
+        }
+
+        .btn-open-app {
+            background: var(--accent);
+            color: #fff;
+            padding: 16px 36px;
+            border-radius: 99px;
+            font-weight: 800;
+            font-size: 1.05rem;
+            white-space: nowrap;
+        }
+
+        .btn-open-app:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Dialog Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background-color: #fff;
+            border-radius: 28px;
+            padding: 40px;
+            max-width: 420px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            transform: scale(0.9);
+            transition: var(--transition);
+        }
+
+        .modal-overlay.show .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            font-size: 1.5rem;
+            color: #64748B;
+        }
+
+        .modal-card h3 {
+            font-size: 1.8rem;
+        }
+
+        .modal-card p {
+            color: #64748B;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .modal-input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-modal-submit {
+            background: var(--primary);
+            color: #fff;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .btn-modal-submit:hover {
+            background: var(--primary-hover);
+        }
+
+        /* ========================================================
+           SECTION 5: LEARN SECTION (Hover Card Flips)
+           ======================================================== */
+        .learn-section {
+            padding: 120px 0;
+            background-color: #fff;
+        }
+
+        .learn-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .learn-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        /* Flip Card Base */
+        .learn-card {
+            background-color: transparent;
+            perspective: 1000px;
+            aspect-ratio: 4/5;
+            cursor: pointer;
+        }
+
+        .learn-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: 0 10px 30px rgba(30, 41, 59, 0.05);
+            border-radius: 24px;
+        }
+
+        .learn-card:hover .learn-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .learn-card-front, .learn-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 24px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--border-light);
+        }
+
+        .learn-card-front {
+            background-color: var(--bg-cream);
+            color: var(--text-dark);
+            gap: 20px;
+        }
+
+        .learn-card-front svg {
+            width: 64px;
+            height: 64px;
+            fill: var(--primary);
+        }
+
+        .learn-card-front h3 {
+            font-size: 1.6rem;
+            color: var(--text-dark);
+        }
+
+        .learn-card-front p {
+            color: #64748B;
+            font-size: 0.95rem;
+        }
+
+        .learn-card-back {
+            background-color: var(--primary);
+            color: var(--text-light);
+            transform: rotateY(180deg);
+            gap: 16px;
+        }
+
+        .learn-card-back h4 {
+            color: var(--text-light);
+            font-size: 1.4rem;
+        }
+
+        .learn-card-back p {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* ========================================================
+           SECTION 6: ABOUT SECTION
+           ======================================================== */
+        .about-section {
+            padding: 120px 0;
+            background-color: var(--bg-cream);
+        }
+
+        .about-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .about-intro {
+            max-width: 800px;
+            margin: 0 auto 60px auto;
+            text-align: center;
+            font-size: 1.15rem;
+            color: #475569;
+            line-height: 1.8;
+        }
+
+        /* Team Avatars Group */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 24px;
+            margin-bottom: 80px;
+        }
+
+        .team-card {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .team-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 2px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .team-card h4 {
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .team-card p {
+            font-size: 0.85rem;
+            color: #64748B;
+            font-weight: 600;
+        }
+
+        /* Tech Badges */
+        .tech-container {
+            text-align: center;
+        }
+
+        .tech-container h3 {
+            margin-bottom: 24px;
+            font-size: 1.4rem;
+        }
+
+        .tech-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .badge {
+            background-color: #fff;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        /* ========================================================
+           SECTION 7: FOOTER
+           ======================================================== */
+        .footer {
+            background-color: var(--text-dark);
+            color: #94a3b8;
+            padding: 80px 0 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 80px;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-light);
+        }
+
+        .footer-logo svg {
+            width: 32px;
+            height: 32px;
+            fill: var(--accent);
+        }
+
+        .footer-tagline {
+            font-size: 1.05rem;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+
+        .footer-links-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .footer-links-group h4 {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-light);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        /* ========================================================
+           RESPONSIVE STYLING (Mobile Adaptive Viewports)
+           ======================================================== */
+        @media (max-width: 1024px) {
+            .hero-title-main { font-size: 4.5rem; }
+            .learn-grid { grid-template-columns: repeat(2, 1fr); }
+            .team-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .navbar { height: 60px; }
+            .nav-links { display: none; }
+            .nav-actions { display: none; }
+            .hamburger { display: flex; }
+            
+            .hero-title-main { font-size: 3.2rem; }
+            .hero-subtitle { font-size: 1.4rem; }
+            
+            .mission-grid { grid-template-columns: 1fr; gap: 40px; }
+            .try-game-grid { grid-template-columns: 1fr; gap: 32px; }
+            .full-app-cta-card { flex-direction: column; text-align: center; gap: 24px; }
+            
+            .learn-grid { grid-template-columns: 1fr; }
+            .team-grid { grid-template-columns: repeat(2, 1fr); }
+            .footer-grid { grid-template-columns: 1fr; gap: 40px; }
+            .footer-bottom { flex-direction: column; gap: 20px; text-align: center; }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title-main { font-size: 2.5rem; }
+            .team-grid { grid-template-columns: 1fr; }
+            .stat-card { flex-direction: column; gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Target mount point for React single-page layout -->
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Custom Inline SVG Assets
+        const HandLogoIcon = () => (
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+        );
+
+        const ArrowIcon = () => (
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        );
+
+        const CameraIcon = () => (
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+        );
+
+        const CheckIcon = () => (
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        );
+
+        const getImagePath = (path) => {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return path.replace('./frontend/public', '');
+            }
+            return path;
+        };
+
+        // Heuristic Sign Recognition Configurations
+        const PRACTICE_SIGNS = [
+            {
+                id: "hello",
+                name: "Hello",
+                image: "./frontend/public/assets/isl_sign_hello.png",
+                description: "Hold your dominant hand up with fingers open and extended, facing the screen in a friendly wave.",
+                check: (landmarks) => {
+                    // Open hand wave: All 5 fingers extended
+                    const indexExtended = landmarks[8].y < landmarks[6].y;
+                    const middleExtended = landmarks[12].y < landmarks[10].y;
+                    const ringExtended = landmarks[16].y < landmarks[14].y;
+                    const pinkyExtended = landmarks[20].y < landmarks[18].y;
+                    // Thumb: tip X should be to the side of mcp/index
+                    const thumbExtended = Math.abs(landmarks[4].x - landmarks[2].x) > 0.05;
+                    return indexExtended && middleExtended && ringExtended && pinkyExtended && thumbExtended;
+                }
+            },
+            {
+                id: "thankyou",
+                name: "Thank You",
+                image: "./frontend/public/assets/isl_sign_thankyou.png",
+                description: "Hold your hand flat, move your fingers close to each other, and gesture outwards from your face.",
+                check: (landmarks) => {
+                    // Flat hand structure: all fingers extended and close together
+                    const indexExtended = landmarks[8].y < landmarks[6].y;
+                    const middleExtended = landmarks[12].y < landmarks[10].y;
+                    const ringExtended = landmarks[16].y < landmarks[14].y;
+                    const pinkyExtended = landmarks[20].y < landmarks[18].y;
+                    
+                    const indexMiddleGap = Math.abs(landmarks[8].x - landmarks[12].x);
+                    const flatHand = indexMiddleGap < 0.06;
+                    return indexExtended && middleExtended && ringExtended && pinkyExtended && flatHand;
+                }
+            },
+            {
+                id: "please",
+                name: "Please",
+                image: "./frontend/public/assets/isl_sign_please.png",
+                description: "Extend your hand flat and tilt it slightly as if rubbing your chest in a clockwise direction.",
+                check: (landmarks) => {
+                    // Open flat hand tilt
+                    const indexExtended = landmarks[8].y < landmarks[6].y;
+                    const middleExtended = landmarks[12].y < landmarks[10].y;
+                    const ringExtended = landmarks[16].y < landmarks[14].y;
+                    const pinkyExtended = landmarks[20].y < landmarks[18].y;
+                    return indexExtended && middleExtended && ringExtended && pinkyExtended;
+                }
+            },
+            {
+                id: "sorry",
+                name: "Sorry",
+                image: "./frontend/public/assets/isl_sign_sorry.png",
+                description: "Make a closed fist and hold it up in front of your chest.",
+                check: (landmarks) => {
+                    // Fist shape: all 4 fingers folded down
+                    const indexFolded = landmarks[8].y > landmarks[6].y;
+                    const middleFolded = landmarks[12].y > landmarks[10].y;
+                    const ringFolded = landmarks[16].y > landmarks[14].y;
+                    const pinkyFolded = landmarks[20].y > landmarks[18].y;
+                    return indexFolded && middleFolded && ringFolded && pinkyFolded;
+                }
+            },
+            {
+                id: "good",
+                name: "Good",
+                image: "./frontend/public/assets/isl_sign_good.png",
+                description: "Close your hand into a fist, extending only your thumb straight up towards the ceiling.",
+                check: (landmarks) => {
+                    // Thumbs up: thumb extended up (tip Y < all other joints)
+                    const thumbUp = landmarks[4].y < landmarks[3].y && landmarks[3].y < landmarks[2].y;
+                    
+                    // Other 4 fingers folded in
+                    const indexFolded = landmarks[8].y > landmarks[6].y;
+                    const middleFolded = landmarks[12].y > landmarks[10].y;
+                    const ringFolded = landmarks[16].y > landmarks[14].y;
+                    const pinkyFolded = landmarks[20].y > landmarks[18].y;
+                    return thumbUp && indexFolded && middleFolded && ringFolded && pinkyFolded;
+                }
+            }
+        ];
+
+        // Main App Layout Component
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+            
+            // Practice Game States
+            const [gameState, setGameState] = useState("START"); // START, LOADING, PLAYING, FINISHED
+            const [currentSignIndex, setCurrentSignIndex] = useState(0);
+            const [isSuccess, setIsSuccess] = useState(false);
+            const [loadingMessage, setLoadingMessage] = useState("");
+            
+            // Modal States
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            
+            // Refs
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const cameraRef = useRef(null);
+            const requestRef = useRef(null);
+            const mpHandsInstance = useRef(null);
+
+            const currentSign = PRACTICE_SIGNS[currentSignIndex];
+
+            // Smooth Scroll handler
+            const handleScroll = (id) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.scrollIntoView({ behavior: "smooth" });
+                }
+                setIsDrawerOpen(false);
+            };
+
+            // Start webcam and load MediaPipe dynamically
+            const startCameraAndGame = async () => {
+                setGameState("LOADING");
+                setLoadingMessage("Downloading MediaPipe libraries from CDN...");
+
+                try {
+                    // Dynamically load scripts if they aren't loaded already
+                    await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js");
+                    await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js");
+                    await loadScript("https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js");
+
+                    setLoadingMessage("Initializing hand tracking model...");
+
+                    // Setup webcam stream
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: "user" }
+                    });
+
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        await videoRef.current.play();
+                    }
+
+                    // Setup MediaPipe
+                    const hands = new window.Hands({
+                        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                    });
+
+                    hands.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.5,
+                        minTrackingConfidence: 0.5
+                    });
+
+                    hands.onResults(onHandResults);
+                    mpHandsInstance.current = hands;
+
+                    // Start capture loop using Camera helper
+                    const camera = new window.Camera(videoRef.current, {
+                        onFrame: async () => {
+                            if (videoRef.current) {
+                                await hands.send({ image: videoRef.current });
+                            }
+                        },
+                        width: 640,
+                        height: 480
+                    });
+
+                    camera.start();
+                    cameraRef.current = camera;
+                    
+                    setGameState("PLAYING");
+                } catch (err) {
+                    console.error("Camera loading failed:", err);
+                    alert("Unable to open camera. Please check permissions.");
+                    setGameState("START");
+                }
+            };
+
+            // Loader script helper
+            const loadScript = (src) => {
+                return new Promise((resolve, reject) => {
+                    if (document.querySelector(`script[src="${src}"]`)) {
+                        resolve();
+                        return;
+                    }
+                    const script = document.createElement("script");
+                    script.src = src;
+                    script.onload = () => resolve();
+                    script.onerror = (e) => reject(e);
+                    document.head.appendChild(script);
+                });
+            };
+
+            // Process hand tracking coordinates and match heuristics
+            const onHandResults = (results) => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const landmarks = results.multiHandLandmarks[0];
+
+                    // Draw custom retro lines
+                    window.drawConnectors(ctx, landmarks, window.HAND_CONNECTIONS, {
+                        color: "#7EA68E",
+                        lineWidth: 3
+                    });
+                    window.drawLandmarks(ctx, landmarks, {
+                        color: "#607266",
+                        lineWidth: 1,
+                        radius: 5
+                    });
+
+                    // Evaluate gesture check
+                    if (currentSign && !isSuccess) {
+                        const matched = currentSign.check(landmarks);
+                        if (matched) {
+                            setIsSuccess(true);
+                        }
+                    }
+                }
+            };
+
+            // Advance to next practice sign
+            const handleNextSign = () => {
+                setIsSuccess(false);
+                if (currentSignIndex < PRACTICE_SIGNS.length - 1) {
+                    setCurrentSignIndex(prev => prev + 1);
+                } else {
+                    // Game Finished
+                    setGameState("FINISHED");
+                    stopCamera();
+                }
+            };
+
+            const stopCamera = () => {
+                if (cameraRef.current) {
+                    cameraRef.current.stop();
+                }
+                if (videoRef.current && videoRef.current.srcObject) {
+                    videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+                }
+                if (mpHandsInstance.current) {
+                    mpHandsInstance.current.close();
+                }
+            };
+
+            // Reset Game loop
+            const resetPractice = () => {
+                setCurrentSignIndex(0);
+                setIsSuccess(false);
+                setGameState("START");
+            };
+
+            // Tear down resources on unmount
+            useEffect(() => {
+                return () => stopCamera();
+            }, []);
+
+            return (
+                <div>
+                    {/* SECTION 1: HEADER & GLASS NAVBAR */}
+                    <nav className="navbar" aria-label="Main Navigation">
+                        <div className="container nav-container">
+                            <a href="#" className="nav-logo" aria-label="Silent Voice Homepage">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                </svg>
+                                <span>Silent Voice</span>
+                            </a>
+
+                            <ul className="nav-links">
+                                <li><a href="#learn" onClick={(e) => { e.preventDefault(); handleScroll("learn"); }}>Learn</a></li>
+                                <li><a href="#try" onClick={(e) => { e.preventDefault(); handleScroll("try"); }}>Try</a></li>
+                                <li><a href="#about" onClick={(e) => { e.preventDefault(); handleScroll("about"); }}>About</a></li>
+                                <li><a href="#mission" onClick={(e) => { e.preventDefault(); handleScroll("mission"); }}>Mission</a></li>
+                            </ul>
+
+                            <div className="nav-actions">
+                                {isLoggedIn ? (
+                                    <div className="user-avatar" onClick={() => setIsLoggedIn(false)} title="Sign Out">AD</div>
+                                ) : (
+                                    <button className="btn-login" onClick={() => setIsModalOpen(true)}>Login</button>
+                                )}
+                            </div>
+
+                            <button 
+                                className="hamburger" 
+                                onClick={() => setIsDrawerOpen(prev => !prev)} 
+                                aria-label="Toggle Navigation Menu"
+                                aria-expanded={isDrawerOpen}
+                            >
+                                <span style={{ transform: isDrawerOpen ? 'rotate(45deg) translate(6px, 6px)' : 'none' }}></span>
+                                <span style={{ opacity: isDrawerOpen ? 0 : 1 }}></span>
+                                <span style={{ transform: isDrawerOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }}></span>
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Mobile Side Drawer */}
+                    <div className={`mobile-drawer ${isDrawerOpen ? 'open' : ''}`} aria-hidden={!isDrawerOpen}>
+                        <ul className="nav-links">
+                            <li><a href="#learn" onClick={(e) => { e.preventDefault(); handleScroll("learn"); }}>Learn</a></li>
+                            <li><a href="#try" onClick={(e) => { e.preventDefault(); handleScroll("try"); }}>Try</a></li>
+                            <li><a href="#about" onClick={(e) => { e.preventDefault(); handleScroll("about"); }}>About</a></li>
+                            <li><a href="#mission" onClick={(e) => { e.preventDefault(); handleScroll("mission"); }}>Mission</a></li>
+                        </ul>
+                        <div style={{ marginTop: '20px' }}>
+                            {isLoggedIn ? (
+                                <button className="btn-login" onClick={() => setIsLoggedIn(false)}>Sign Out</button>
+                            ) : (
+                                <button className="btn-login" onClick={() => { setIsDrawerOpen(false); setIsModalOpen(true); }}>Login</button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* SECTION 2: HERO */}
+                    <header className="hero">
+                        <div className="container hero-content">
+                            <div className="hero-title-container">
+                                <h1 className="hero-title-main">
+                                    <span>Indian Sign</span> <br /> Language
+                                </h1>
+                            </div>
+                            <p className="hero-subtitle">Breaking barriers, one sign at a time.</p>
+                            <a href="#try" className="hero-cta" onClick={(e) => { e.preventDefault(); handleScroll("try"); }}>
+                                <span>Start Translating</span>
+                                <ArrowIcon />
+                            </a>
+                        </div>
+                    </header>
+
+                    {/* SECTION 3: MISSION */}
+                    <section id="mission" className="mission-section">
+                        <div className="container mission-grid">
+                            <div className="mission-image-area" role="img" aria-label="Upload Mission Image area">
+                                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p style={{ fontWeight: 700 }}>Mission Image Placeholder</p>
+                                <p style={{ fontSize: '0.85rem' }}>Upload via /mnt/agents/upload/</p>
+                            </div>
+                            <div className="mission-content">
+                                <span className="section-label">Our Purpose</span>
+                                <h2 className="section-title">Our Mission</h2>
+                                <p className="mission-text">
+                                    Silent Voice exists to bridge the communication gap for India's 18 million+ deaf and hard-of-hearing community. We leverage AI and computer vision to translate Indian Sign Language in real-time, making everyday interactions — at schools, hospitals, banks, and public spaces — accessible, dignified, and effortless. Every sign matters. Every voice deserves to be heard.
+                                </p>
+                                <div className="stat-card">
+                                    <div className="stat-item">
+                                        <h4>18M+</h4>
+                                        <p>People</p>
+                                    </div>
+                                    <div className="stat-item">
+                                        <h4>400+</h4>
+                                        <p>ISL Signs</p>
+                                    </div>
+                                    <div className="stat-item">
+                                        <h4>Real-Time</h4>
+                                        <p>Translation</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* SECTION 4: TRY IT YOURSELF */}
+                    <section id="try" className="try-section">
+                        <div className="container">
+                            <div className="try-header">
+                                <span className="section-label">Interactive Practice</span>
+                                <h2 className="section-title">Try It Yourself</h2>
+                                <p style={{ color: '#64748B', fontWeight: 600, marginTop: '8px' }}>Practice 5 essential ISL signs with your camera</p>
+                            </div>
+
+                            <div className="try-container">
+                                {gameState === "START" && (
+                                    <div className="try-start-screen">
+                                        <CameraIcon />
+                                        <h3>Interactive Sign Practice</h3>
+                                        <p style={{ color: '#64748B' }}>To start practicing, grant camera permission. All video frames are processed locally inside your browser and never sent to any server.</p>
+                                        <button className="btn-start-camera" onClick={startCameraAndGame}>Start Camera</button>
+                                    </div>
+                                )}
+
+                                {(gameState === "PLAYING" || gameState === "LOADING") && (
+                                    <div className="try-game-grid">
+                                        <div className="try-game-left">
+                                            {gameState === "LOADING" ? (
+                                                <div className="try-loader" style={{ minHeight: '300px', justifyContent: 'center' }}>
+                                                    <div className="spinner"></div>
+                                                    <h3>Configuring Model</h3>
+                                                    <p style={{ color: '#64748B' }}>{loadingMessage}</p>
+                                                </div>
+                                            ) : (
+                                                <React.Fragment>
+                                                    <div className="sign-ref-card">
+                                                        <img src={getImagePath(currentSign.image)} alt={`Visual instructions for ${currentSign.name} sign`} />
+                                                        <div className="sign-target-label">Instruction: {currentSign.name}</div>
+                                                        <div className={`success-overlay ${isSuccess ? 'show' : ''}`}>
+                                                            <CheckIcon />
+                                                            <h3 style={{ color: '#fff', marginTop: '12px' }}>Perfect Match!</h3>
+                                                        </div>
+                                                    </div>
+                                                    <div className="sign-desc-box">
+                                                        <strong>How to perform:</strong> {currentSign.description}
+                                                    </div>
+                                                </React.Fragment>
+                                            )}
+                                        </div>
+                                        <div className="try-game-right">
+                                            <div className="video-container">
+                                                <video ref={videoRef} className="video-feed" playsInline muted></video>
+                                                <canvas ref={canvasRef} width="640" height="480" className="video-canvas"></canvas>
+                                                {gameState === "LOADING" && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        background: 'rgba(15, 23, 42, 0.8)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: '#fff',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        Connecting camera feed...
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="practice-controls">
+                                                <p style={{ fontWeight: 800, color: '#64748B' }}>
+                                                    {gameState === "LOADING" ? "Preparing signs..." : `Sign ${currentSignIndex + 1} of 5`}
+                                                </p>
+                                                {isSuccess && gameState === "PLAYING" && (
+                                                    <button className="btn-next-sign" onClick={handleNextSign}>
+                                                        {currentSignIndex === PRACTICE_SIGNS.length - 1 ? "Finish Session" : "Next Sign"}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {gameState === "FINISHED" && (
+                                    <div className="try-finish-screen">
+                                        <svg viewBox="0 0 24 24" width="80" height="80" fill="currentColor">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                        </svg>
+                                        <h3>Congratulations!</h3>
+                                        <p style={{ color: '#64748B' }}>You've successfully completed the practice course and learned 5 essential ISL signs!</p>
+                                        <button className="btn-start-camera" onClick={resetPractice}>Practice Again</button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="full-app-cta-card">
+                                <div>
+                                    <h3>Ready to translate full conversations?</h3>
+                                    <p>Connect with other signers and translate streaming conversations instantly.</p>
+                                </div>
+                                <button className="btn-open-app" onClick={() => setIsModalOpen(true)}>Open Silent Voice App</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* SECTION 5: LEARN */}
+                    <section id="learn" className="learn-section">
+                        <div className="container">
+                            <div className="learn-header">
+                                <span className="section-label">Dictionary</span>
+                                <h2 className="section-title">Learn Common Signs</h2>
+                            </div>
+
+                            <div className="learn-grid">
+                                {[
+                                    { name: "Hello", fact: "In Indian Sign Language, waving with an open hand is standard. Eye contact is critical for signaling attention!" },
+                                    { name: "Thank You", fact: "Originates from raising a flat hand from your chin outward. Emphasizes appreciation and polite boundary lines." },
+                                    { name: "Please", fact: "Represented by circling a flat hand over the chest. Symbolizes sincerity and warmth." },
+                                    { name: "Sorry", fact: "Circling a closed fist over your chest is used to convey apologies and acknowledge mistakes." },
+                                    { name: "Good", fact: "A single thumbs-up. In ISL, facial expressions (like smiling) reinforce the positive degree." },
+                                    { name: "Friend", fact: "Locking the index fingers of both hands. Represents trust, linking, and human connection." }
+                                ].map((sign, index) => (
+                                    <div className="learn-card" key={index} role="button" aria-label={`Learn details of ${sign.name}`}>
+                                        <div className="learn-card-inner">
+                                            <div className="learn-card-front">
+                                                <svg viewBox="0 0 24 24">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                                </svg>
+                                                <h3>{sign.name}</h3>
+                                                <p>Hover to reveal fun facts</p>
+                                            </div>
+                                            <div className="learn-card-back">
+                                                <h4>Did You Know?</h4>
+                                                <p>{sign.fact}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* SECTION 6: ABOUT */}
+                    <section id="about" className="about-section">
+                        <div className="container">
+                            <div className="about-header">
+                                <span className="section-label">Team & Platform</span>
+                                <h2 className="section-title">About Silent Voice</h2>
+                            </div>
+                            <p className="about-intro">
+                                Silent Voice is designed to modernize communications. Combining bleeding-edge browser-level computer vision and neural networking pipelines, the platform translates body postures and gestural language into readable transcripts in milliseconds.
+                            </p>
+
+                            <div className="team-grid">
+                                {["Ayandip", "Rahul", "Priya", "Aniket", "Sanjana"].map((name, index) => (
+                                    <div className="team-card" key={index}>
+                                        <div className="team-avatar">{name.slice(0, 2).toUpperCase()}</div>
+                                        <h4>{name}</h4>
+                                        <p>AI Engineer</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="tech-container">
+                                <h3>Tech Stack Integration</h3>
+                                <div className="tech-badges">
+                                    <span className="badge">MediaPipe Hands</span>
+                                    <span className="badge">Keras Residual Network</span>
+                                    <span className="badge">TensorFlow Lite</span>
+                                    <span className="badge">Django AI Service</span>
+                                    <span className="badge">Express WebSockets</span>
+                                    <span className="badge">React & Vite</span>
+                                    <span className="badge">TypeScript</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* SECTION 7: FOOTER */}
+                    <footer className="footer">
+                        <div className="container footer-grid">
+                            <div className="footer-brand">
+                                <div className="footer-logo">
+                                    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                    </svg>
+                                    <span>Silent Voice</span>
+                                </div>
+                                <p className="footer-tagline">Real-time Indian Sign Language translation bridging gaps across schools, offices, and society.</p>
+                            </div>
+                            <div className="footer-links-group">
+                                <h4>Quick Links</h4>
+                                <ul className="footer-links">
+                                    <li><a href="#learn" onClick={(e) => { e.preventDefault(); handleScroll("learn"); }}>Learn Dictionary</a></li>
+                                    <li><a href="#try" onClick={(e) => { e.preventDefault(); handleScroll("try"); }}>Interactive Game</a></li>
+                                    <li><a href="#about" onClick={(e) => { e.preventDefault(); handleScroll("about"); }}>About Team</a></li>
+                                    <li><a href="#mission" onClick={(e) => { e.preventDefault(); handleScroll("mission"); }}>Our Mission</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="container footer-bottom">
+                            <p>&copy; 2026 Silent Voice. All rights reserved.</p>
+                            <p>Made with ❤️ for the Indian Deaf Community</p>
+                        </div>
+                    </footer>
+
+                    {/* MOCK LOGIN MODAL POPUP */}
+                    <div className={`modal-overlay ${isModalOpen ? 'show' : ''}`} role="dialog" aria-modal="true" aria-hidden={!isModalOpen}>
+                        <div className="modal-card">
+                            <button className="modal-close" onClick={() => setIsModalOpen(false)} aria-label="Close dialog">&times;</button>
+                            <h3>Silent Voice App</h3>
+                            <p>Access the full conversation translator, multi-party rooms, and real-time custom vocabulary.</p>
+                            <form className="modal-form" onSubmit={(e) => { e.preventDefault(); setIsLoggedIn(true); setIsModalOpen(false); }}>
+                                <input type="email" placeholder="Email Address" className="modal-input" required />
+                                <input type="password" placeholder="Password" className="modal-input" required />
+                                <button type="submit" className="btn-modal-submit">Access Full App</button>
+                            </form>
+                            <p style={{ fontSize: '0.85rem' }}>Don't have an account? <a href="#" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Sign Up</a></p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>
