@@ -22,6 +22,7 @@ config_path = os.path.join(MODEL_DIR, "config.json")
 weights_path = os.path.join(MODEL_DIR, "model.weights.h5")
 labels_path = os.path.join(MODEL_DIR, "labels.json")
 scaler_path = os.path.join(MODEL_DIR, "scaler.json")
+h5_model_path = os.path.join(MODEL_DIR, "model.h5")
 
 # Global variables for model metadata
 model = None
@@ -53,7 +54,13 @@ def load_model_and_metadata():
     is_keras3 = keras.__version__.startswith('3')
     print(f"[MODEL INIT] Keras version: {keras.__version__} (Keras 3: {is_keras3})")
     
-    if is_keras3:
+    if os.path.exists(h5_model_path):
+        try:
+            model = keras.models.load_model(h5_model_path, compile=False)
+            print(f"[MODEL INIT] Loaded legacy H5 model with compile=False from {h5_model_path}")
+        except Exception as e:
+            print(f"[MODEL INIT ERROR] Failed to load model.h5: {e}")
+    elif is_keras3:
         try:
             if os.path.exists(model_path):
                 model = keras.models.load_model(model_path)
@@ -167,7 +174,8 @@ def predict(request):
             
         # 4. Map outputs using labels.json and majority agreement
         words = []
-        threshold = 0.75
+        confidences = {}
+        threshold = 0.50
         
         # predictions_np shape: (num_frames, num_classes)
         for i, frame_preds in enumerate(predictions_np):
@@ -178,17 +186,19 @@ def predict(request):
             if max_score > threshold:
                 if word and word != "unknown":
                     words.append(word)
+                    if word not in confidences or max_score > confidences[word]:
+                        confidences[word] = max_score
                     
         # Majority agreement check: require at least 3 frames out of 5 to agree
         result_words = []
         if words:
             if len(predictions_np) == 1:
-                result_words = words
+                result_words = [{"word": words[0], "confidence": confidences[words[0]]}]
             else:
                 most_common = Counter(words).most_common(1)[0]
                 word_name, agree_count = most_common
                 if agree_count >= 3:  # At least 3 frames agree
-                    result_words = [word_name]
+                    result_words = [{"word": word_name, "confidence": confidences[word_name]}]
 
         # Log predictions to logs/predictions.jsonl
         try:
@@ -214,6 +224,28 @@ def predict(request):
                     "result_words": result_words
                 }
                 f.write(json.dumps(log_entry) + "\n")
+        except Exception:
+            pass
+
+        # Log human-readable predictions to logs/live_predictions.txt
+        try:
+            log_dir = os.path.join(BASE_DIR, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            txt_log_path = os.path.join(log_dir, "live_predictions.txt")
+            with open(txt_log_path, "a", encoding="utf-8") as f:
+                f.write(f"\n=========================================\n")
+                f.write(f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}\n")
+                f.write(f"Incoming Frames: {len(frames_np)}\n")
+                for i, frame_preds in enumerate(predictions_np):
+                    sorted_indices = np.argsort(frame_preds)[::-1]
+                    f.write(f"Frame {i} Top 5 Predictions:\n")
+                    for rank in range(5):
+                        idx = int(sorted_indices[rank])
+                        conf = float(frame_preds[idx])
+                        word = labels.get(str(idx), "unknown")
+                        f.write(f"  Rank {rank+1}: Class {idx} ({word}) - {conf*100:.2f}%\n")
+                f.write(f"Final Result Words returned: {result_words}\n")
+                f.write(f"=========================================\n")
         except Exception:
             pass
                     
