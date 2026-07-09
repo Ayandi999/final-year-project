@@ -1823,12 +1823,7 @@ export default function App() {
 
       {/* Main Landing Screen */}
       {view === 'landing' && (
-        <div className="landing-page-wrapper animate-fade-in" style={{ width: '100%' }}>
-          {/* Ambient Glowing Background Hues */}
-          <div className="ambient-glow-1"></div>
-          <div className="ambient-glow-2"></div>
-          <div className="ambient-glow-3"></div>
-          
+        <>
           {/* Section 1: Navigation Bar */}
           <nav className="navbar" aria-label="Main Navigation">
             <div className="container nav-container">
@@ -1867,6 +1862,12 @@ export default function App() {
               </button>
             </div>
           </nav>
+
+          <div className="landing-page-wrapper animate-fade-in" style={{ width: '100%' }}>
+            {/* Ambient Glowing Background Hues */}
+            <div className="ambient-glow-1"></div>
+            <div className="ambient-glow-2"></div>
+            <div className="ambient-glow-3"></div>
 
           {/* Mobile Navigation Drawer */}
           {isDrawerOpen && (
@@ -2228,7 +2229,8 @@ export default function App() {
           </footer>
 
         </div>
-      )}
+      </>
+    )}
 
       {view === 'login' && (
         <LoginPage 
