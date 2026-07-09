@@ -1823,7 +1823,7 @@ export default function App() {
 
       {/* Main Landing Screen */}
       {view === 'landing' && (
-        <>
+        <div className="landing-page-wrapper" style={{ width: '100%' }}>
           {/* Section 1: Navigation Bar */}
           <nav className="navbar" aria-label="Main Navigation">
             <div className="container nav-container">
@@ -1863,7 +1863,7 @@ export default function App() {
             </div>
           </nav>
 
-          <div className="landing-page-wrapper animate-fade-in" style={{ width: '100%' }}>
+          <div className="animate-fade-in" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Ambient Glowing Background Hues */}
             <div className="ambient-glow-1"></div>
             <div className="ambient-glow-2"></div>
@@ -2206,8 +2206,7 @@ export default function App() {
               <div className="footer-main-grid">
                 <div className="footer-brand" style={{ textAlign: 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-color)' }}>
-                    <Tv size={28} style={{ color: 'var(--accent-primary)' }} />
-                    <span>Silent Voice</span>
+                    <span>SilenTalk</span>
                   </div>
                   <p className="footer-brand-tagline">Real-time Indian Sign Language translation bridging gaps across schools, offices, and society.</p>
                 </div>
@@ -2222,15 +2221,15 @@ export default function App() {
                 </div>
               </div>
               <div className="footer-bottom-bar">
-                <p>&copy; 2026 Silent Voice. All rights reserved.</p>
+                <p>&copy; 2026 SilenTalk. All rights reserved.</p>
                 <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Made with <Heart size={14} style={{ fill: 'red', stroke: 'red' }} /> for the Indian Deaf Community</p>
               </div>
             </div>
           </footer>
 
+          </div>
         </div>
-      </>
-    )}
+      )}
 
       {view === 'login' && (
         <LoginPage 
