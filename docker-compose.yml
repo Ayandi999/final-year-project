@@ -8,6 +8,9 @@ services:
       - "8080:8080"
     depends_on:
       - ai_service
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
