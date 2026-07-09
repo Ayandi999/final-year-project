@@ -24,6 +24,26 @@ const ALLOWED_ORIGINS = [
     process.env.FRONTEND_URL
 ].filter(Boolean) as string[];
 
+// Automatically whitelist both www and non-www variants of the frontend URL
+if (process.env.FRONTEND_URL) {
+    try {
+        const parsedUrl = new URL(process.env.FRONTEND_URL);
+        if (parsedUrl.hostname.startsWith('www.')) {
+            const nonWwwOrigin = `${parsedUrl.protocol}//${parsedUrl.hostname.replace(/^www\./, '')}${parsedUrl.port ? ':' + parsedUrl.port : ''}`;
+            if (!ALLOWED_ORIGINS.includes(nonWwwOrigin)) {
+                ALLOWED_ORIGINS.push(nonWwwOrigin);
+            }
+        } else {
+            const wwwOrigin = `${parsedUrl.protocol}//www.${parsedUrl.hostname}${parsedUrl.port ? ':' + parsedUrl.port : ''}`;
+            if (!ALLOWED_ORIGINS.includes(wwwOrigin)) {
+                ALLOWED_ORIGINS.push(wwwOrigin);
+            }
+        }
+    } catch (e) {
+        // Skip invalid URL values
+    }
+}
+
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
