@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Camera,
   Heart,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
@@ -994,14 +996,77 @@ export default function App() {
     let mouseX = -1000;
     let mouseY = -1000;
 
+    // Renders a static, high-performance uniform dot grid for mobile (0% CPU overhead!)
+    const renderStaticMobileGrid = () => {
+      ctx.clearRect(0, 0, width, height);
+      const spacing = 28; // Uniform square spacing to prevent vertical stripes
+      const cols = Math.ceil(width / spacing) + 1;
+      const rows = Math.ceil(height / spacing) + 1;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const drawX = c * spacing;
+          const drawY = r * spacing;
+
+          // Alpha calculations to fade away at screen borders
+          const alphaX = Math.sin((c / cols) * Math.PI);
+          const alphaY = Math.sin((r / rows) * Math.PI);
+          const alpha = alphaX * alphaY * 0.45; // Max opacity 45%
+
+          // Tiranga color gradient from left to right (Saffron -> White -> Green)
+          const ratio = drawX / width;
+          let flagR = 143, flagG = 163, flagB = 150;
+          
+          if (ratio < 0.31) {
+            // Saffron/Orange
+            flagR = 255;
+            flagG = 90;
+            flagB = 0;
+          } else if (ratio < 0.35) {
+            // Transition
+            const t = (ratio - 0.31) / 0.04;
+            flagR = Math.round(255 - 15 * t);
+            flagG = Math.round(90 + 150 * t);
+            flagB = Math.round(0 + 240 * t);
+          } else if (ratio < 0.63) {
+            // White
+            flagR = 240;
+            flagG = 240;
+            flagB = 240;
+          } else if (ratio < 0.67) {
+            // Transition
+            const t = (ratio - 0.63) / 0.04;
+            flagR = Math.round(240 - 230 * t);
+            flagG = Math.round(240 - 55 * t);
+            flagB = Math.round(240 - 150 * t);
+          } else {
+            // Green
+            flagR = 10;
+            flagG = 185;
+            flagB = 90;
+          }
+
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, 1.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${flagR}, ${flagG}, ${flagB}, ${alpha})`;
+          ctx.fill();
+        }
+      }
+    };
+
     const handleResize = () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      if (window.innerWidth < 768) {
+        renderStaticMobileGrid();
+      }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
+      if (window.innerWidth >= 768) {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      }
     };
 
     const handleMouseLeave = () => {
@@ -1109,13 +1174,19 @@ export default function App() {
       animationFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    if (window.innerWidth < 768) {
+      renderStaticMobileGrid();
+    } else {
+      render();
+    }
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseleave', handleMouseLeave);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [view]);
 
@@ -1856,20 +1927,12 @@ export default function App() {
                 onClick={() => setIsDrawerOpen(prev => !prev)} 
                 aria-label="Toggle Navigation Menu"
               >
-                <span style={{ transform: isDrawerOpen ? 'rotate(45deg) translate(6px, 6px)' : 'none', display: 'block', width: '25px', height: '3px', backgroundColor: 'var(--text-color)', marginBottom: '5px', borderRadius: '3px', transition: 'all 0.3s' }}></span>
-                <span style={{ opacity: isDrawerOpen ? 0 : 1, display: 'block', width: '25px', height: '3px', backgroundColor: 'var(--text-color)', marginBottom: '5px', borderRadius: '3px', transition: 'all 0.3s' }}></span>
-                <span style={{ transform: isDrawerOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none', display: 'block', width: '25px', height: '3px', backgroundColor: 'var(--text-color)', borderRadius: '3px', transition: 'all 0.3s' }}></span>
+                {isDrawerOpen ? <X size={24} style={{ color: 'var(--text-dark)' }} /> : <Menu size={24} style={{ color: 'var(--text-dark)' }} />}
               </button>
             </div>
           </nav>
 
-          <div className="animate-fade-in" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            {/* Ambient Glowing Background Hues */}
-            <div className="ambient-glow-1"></div>
-            <div className="ambient-glow-2"></div>
-            <div className="ambient-glow-3"></div>
-
-          {/* Mobile Navigation Drawer */}
+          {/* Mobile Navigation Drawer (Moved outside transformed container to fix containing-block bugs on scroll!) */}
           {isDrawerOpen && (
             <div className={`mobile-drawer ${isDrawerOpen ? 'open' : ''}`}>
               <ul className="nav-links" style={{ display: 'flex' }}>
@@ -1890,6 +1953,12 @@ export default function App() {
               </div>
             </div>
           )}
+
+          <div className="animate-fade-in" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+            {/* Ambient Glowing Background Hues */}
+            <div className="ambient-glow-1"></div>
+            <div className="ambient-glow-2"></div>
+            <div className="ambient-glow-3"></div>
 
           {/* Section 2: Hero Section */}
           <header className="landing-hero">

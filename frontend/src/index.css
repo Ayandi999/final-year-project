@@ -1719,7 +1719,6 @@ body {
 /* RESPONSIVE ADAPTABILITY */
 @media (max-width: 1024px) {
     .landing-page-wrapper .hero-title-main { font-size: 6rem; }
-    .landing-page-wrapper .learn-cards-grid { grid-template-columns: repeat(2, 1fr); }
     .landing-page-wrapper .team-avatars-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
@@ -1736,10 +1735,19 @@ body {
     .landing-page-wrapper .practice-game-split { grid-template-columns: 1fr; gap: 32px; }
     .landing-page-wrapper .full-app-cta-card { flex-direction: column; text-align: center; gap: 24px; }
     
-    .landing-page-wrapper .learn-cards-grid { grid-template-columns: 1fr; }
     .landing-page-wrapper .team-avatars-grid { grid-template-columns: repeat(2, 1fr); }
     .landing-page-wrapper .footer-main-grid { grid-template-columns: 1fr; gap: 40px; }
     .landing-page-wrapper .footer-bottom-bar { flex-direction: column; gap: 16px; text-align: center; }
+
+    /* Mobile background performance & page-wiggle optimizations */
+    .landing-page-app-wrapper {
+        background: #0B0C0C !important; /* Solid dark background to make dots pop */
+    }
+    .landing-page-wrapper .ambient-glow-1,
+    .landing-page-wrapper .ambient-glow-2,
+    .landing-page-wrapper .ambient-glow-3 {
+        display: none !important; /* Hide glowing hues entirely as requested */
+    }
 }
 
 /* Ambient Glowing Background Hues */
